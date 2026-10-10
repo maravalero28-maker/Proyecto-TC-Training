@@ -50,7 +50,8 @@ $planEtiquetas = [
                 </section>
                 <section class="header-actions">
                     <fieldset class="search-bar">
-                        <input type="text" id="table-search" class="form-control search-input" placeholder="🔍 Buscar por nombre de cliente...">
+                        <img src="../Imagenes/Lupa.png" alt="" class="search-icon" aria-hidden="true">
+                        <input type="text" id="table-search" class="form-control search-input" placeholder="Buscar por nombre de cliente...">
                     </fieldset>
                     <a href="../controlador/ClienteController.php?action=nuevo" class="btn btn-primary">+ Nuevo Cliente</a>
                 </section>
