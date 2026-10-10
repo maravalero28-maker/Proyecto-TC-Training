@@ -1,0 +1,68 @@
+@media (max-width: 768px) {
+    /* 1. Estilos para el botón de hamburguesa */
+    .hamburger-menu {
+        display: block;
+        background: transparent;
+        border: none;
+        color: var(--text-main);
+        font-size: 1.8rem;
+        cursor: pointer;
+        padding: 0.2rem 0.5rem;
+        border-radius: var(--radius-md);
+        line-height: 1;
+        transition: background-color 0.2s ease, color 0.2s ease;
+        display: flex;
+    }
+
+    .hamburger-menu:hover,
+    .hamburger-menu:focus {
+        background-color: var(--surface-hover);
+        color: var(--primary);
+        outline: none;
+    }
+
+
+    /* 2. Convertir el sidebar en un menú flotante para eliminar el espacio vacío */
+    #sidebar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        height: 100vh;
+        width: 260px;
+        z-index: 1050; /* Mayor al z-index del topbar */
+        transform: translateX(-100%);
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        background-color: var(--surface);
+        border-right: 1px solid var(--border);
+        border-bottom: none;
+        padding: 2rem 1rem;
+    }
+
+    /* Muestra el menú lateral cuando se presiona el botón */
+    #sidebar.active {
+        transform: translateX(0);
+        box-shadow: 4px 0 25px rgba(0, 0, 0, 0.5);
+    }
+
+    /* Ayuda a que el contenido principal ocupe toda la pantalla */
+    .main-content {
+        margin-left: 0;
+        width: 100%;
+    }
+
+    /* Pone las tarjetas de estadísticas en 1 sola columna */
+    .kpi-cards {
+        grid-template-columns: 1fr;
+    }
+
+    /* Apila los botones de acción uno debajo del otro */
+    .actions {
+        flex-direction: column;
+    }
+
+    /* Botones más grandes para facilitar el toque (Touch-friendly) */
+    .btn-touch {
+        width: 100%;
+        padding: 18px;
+    }
+}
