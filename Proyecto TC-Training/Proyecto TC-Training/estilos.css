@@ -3,7 +3,7 @@
 .danger-btn { background: #c82333; color: #fff; padding: 8px 12px; border: 0; }
 .center-card { max-width: 600px; margin: 0 auto; }
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Lexend:wght@400;500;600;700&display=swap');
-active
+
 :root {
   --primary: #e30613;
   --primary-hover: #b5000b;
@@ -13,7 +13,7 @@ active
   --surface: #f8f9fa;
   --surface-hover: #e2e6ea;
   
-  --border: #ced4da;
+  --border: #ced4da00;
   
   --text-main: #212529;
   --text-muted: #6b7280;
@@ -356,16 +356,27 @@ ul {
 }
 
 .search-bar {
+  position: relative;
   display: flex;
   gap: 0.5rem;
   flex: 1;
   max-width: 400px;
 }
 
+.search-icon {
+  position: absolute;
+  left: 1.25rem;
+  width: 0.9rem;
+  height: 0.9rem;
+  transform: translateY(-50%);
+  top: 50%;
+  pointer-events: none;
+}
+
 .search-input {
   flex: 1;
   border-radius: var(--radius-full);
-  padding: 0.6rem 1.25rem;
+  padding: 0.6rem 1.25rem 0.6rem 2.75rem;
   font-size: 0.9rem;
 }
 
@@ -1185,5 +1196,4 @@ button.installer-btn:hover { transform: translateY(-2px); }
 .auto-message { text-align: center; margin-top: 15px; font-size: 14px; color: #666; }
 .login-link { display: block; text-align: center; margin-top: 15px; color: #667eea; text-decoration: none; }
 .form-margin-top { margin-top: 20px; }
-
 
