@@ -65,4 +65,20 @@
         width: 100%;
         padding: 18px;
     }
+
+    .reportes-page {
+        padding: 1rem;
+    }
+
+    .reportes-card {
+        padding: 1rem;
+    }
+
+    .reportes-fieldset p {
+        grid-template-columns: 1fr;
+    }
+
+    .reportes-card .btn {
+        width: 100%;
+    }
 }
