@@ -13,6 +13,7 @@ $active = $active ?? '';
                 <li><a href="../controlador/EntrenadorController.php" class="<?php echo $active === 'entrenadores' ? 'active' : ''; ?>"><svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg> Entrenadores</a></li>
                 <li><a href="../controlador/NominaController.php" class="<?php echo $active === 'nomina' ? 'active' : ''; ?>"><svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg> Pago Nómina</a></li>
                 <li><a href="../controlador/PagoServicioController.php" class="<?php echo $active === 'servicios' ? 'active' : ''; ?>"><svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg> Otros Servicios</a></li>
+                <li><a href="../controlador/Reportecontrolador.php?action=index" class="<?php echo $active === 'reportes' ? 'active' : ''; ?>"><svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 19V5M4 19h16M8 16v-5M12 16V8M16 16v-3"></path></svg> Reportes</a></li>
             </ul>
         </nav>
     </section>
