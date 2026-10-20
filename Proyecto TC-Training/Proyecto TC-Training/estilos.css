@@ -1197,3 +1197,94 @@ button.installer-btn:hover { transform: translateY(-2px); }
 .login-link { display: block; text-align: center; margin-top: 15px; color: #667eea; text-decoration: none; }
 .form-margin-top { margin-top: 20px; }
 
+.reportes-page {
+  padding: 2rem;
+}
+
+.reportes-card {
+  max-width: 980px;
+  margin: 0 auto;
+}
+
+.reportes-fieldset {
+  padding: 1.25rem;
+  margin-bottom: 1.25rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background-color: var(--surface);
+}
+
+.reportes-fieldset legend {
+  padding: 0 0.5rem;
+  font-family: var(--font-heading);
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.reportes-fieldset label {
+  display: inline-block;
+  margin: 0.35rem 1rem 0.35rem 0;
+}
+
+.reportes-fieldset input:not([type="radio"]):not([type="checkbox"]),
+.reportes-fieldset select {
+  width: 100%;
+  padding: 0.7rem 0.85rem;
+  margin-top: 0.35rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background-color: var(--background);
+  color: var(--text-main);
+  font: inherit;
+}
+
+.reportes-fieldset p {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+  margin-top: 0.75rem;
+}
+
+.seleccion-columnas {
+  margin-top: 1rem;
+  padding-left: 1rem;
+  border: none;
+}
+
+.is-hidden {
+  display: none !important;
+}
+
+.acciones-reporte,
+.navegacion-retorno {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.reportes-separador {
+  border: 0;
+  border-top: 1px solid var(--border);
+  margin-bottom: 1.5rem;
+}
+
+.reportes-alerta {
+  padding: 1rem;
+  border-radius: var(--radius-md);
+  background-color: rgba(245, 158, 11, 0.12);
+  color: var(--text-main);
+}
+
+@media print {
+  .sidebar,
+  .acciones-reporte,
+  .navegacion-retorno {
+    display: none !important;
+  }
+
+  .reportes-page {
+    padding: 0;
+  }
+}
+
