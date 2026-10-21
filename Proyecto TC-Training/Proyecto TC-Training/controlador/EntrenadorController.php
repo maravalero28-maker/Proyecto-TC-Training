@@ -79,8 +79,8 @@ if (isset($_GET['action']) && $_GET['action'] === 'editar' && isset($_GET['cedul
 }
 
 if (isset($_GET['action']) && $_GET['action'] === 'eliminar' && isset($_GET['cedula'])) {
-    $objEntrenador->eliminar($_GET['cedula']);
-    header("Location: ../controlador/EntrenadorController.php?msj=eliminado");
+    $resultado = $objEntrenador->eliminar($_GET['cedula']);
+    header("Location: ../controlador/EntrenadorController.php?msj=" . ($resultado ? 'eliminado' : 'error'));
     exit();
 }
 
@@ -88,7 +88,7 @@ if (isset($_GET['msj'])) {
     if ($_GET['msj'] === 'creado') {
         $mensaje = '<article class="alert alert-success">Entrenador registrado exitosamente.</article>';
     } elseif ($_GET['msj'] === 'eliminado') {
-        $mensaje = '<article class="alert alert-success">Entrenador eliminado correctamente.</article>';
+        $mensaje = '<article class="alert alert-success">Entrenador desactivado correctamente.</article>';
     } elseif ($_GET['msj'] === 'actualizado') {
         $mensaje = '<article class="alert alert-success">Entrenador actualizado correctamente.</article>';
     } elseif ($_GET['msj'] === 'existe') {

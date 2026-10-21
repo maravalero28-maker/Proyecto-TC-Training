@@ -87,8 +87,8 @@ if (isset($_GET['action']) && $_GET['action'] === 'editar' && isset($_GET['id'])
 }
 
 if (isset($_GET['action']) && $_GET['action'] === 'eliminar' && isset($_GET['id'])) {
-    $objCliente->eliminar($_GET['id']);
-    header("Location: ../controlador/ClienteController.php?msj=eliminado");
+    $resultado = $objCliente->eliminar($_GET['id']);
+    header("Location: ../controlador/ClienteController.php?msj=" . ($resultado ? 'eliminado' : 'error'));
     exit();
 }
 
@@ -96,7 +96,7 @@ if (isset($_GET['msj'])) {
     if ($_GET['msj'] === 'creado') {
         $mensaje = '<article class="alert alert-success">Cliente registrado exitosamente. </article>';
     } elseif ($_GET['msj'] === 'eliminado') {
-        $mensaje = '<article class="alert alert-success">Cliente eliminado correctamente.</article>';
+        $mensaje = '<article class="alert alert-success">Cliente desactivado correctamente.</article>';
     } elseif ($_GET['msj'] === 'error') {
         $mensaje = '<article class="alert alert-danger">Ocurrió un error al procesar la solicitud.</article>';
     } elseif ($_GET['msj'] === 'actualizado') {
