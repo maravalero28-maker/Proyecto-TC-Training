@@ -40,11 +40,11 @@ $id = intval($data['id']);
 try {
     $ok = $clienteModel->eliminar($id);
     if ($ok) {
-        echo json_encode(['success' => true, 'message' => 'Usuario eliminado']);
+        echo json_encode(['success' => true, 'message' => 'Usuario desactivado']);
         exit();
     } else {
         http_response_code(500);
-        echo json_encode(['success' => false, 'message' => 'No se pudo eliminar usuario']);
+        echo json_encode(['success' => false, 'message' => 'No se pudo desactivar usuario']);
         exit();
     }
 } catch (Exception $e) {
