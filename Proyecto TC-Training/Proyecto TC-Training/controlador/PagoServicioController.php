@@ -12,6 +12,19 @@ $database = new Conexion();
 $db = $database->getConexion();
 $objServicio = new ModelPagoServicio($db);
 
+// Obtener métodos de pago y cuentas desde la BD
+$metodosPagoList = [];
+try {
+    $stmtMetodos = $db->query("SELECT id_metodo, nombre FROM metodo_pago");
+    $metodosPagoList = $stmtMetodos->fetchAll(PDO::FETCH_ASSOC);
+} catch (PDOException $e) {}
+
+$cuentasList = [];
+try {
+    $stmtCuentas = $db->query("SELECT c.id_cuenta, c.num_cuenta, c.tipo_moneda, b.nombre AS banco_nombre FROM cuenta c INNER JOIN banco b ON c.id_banco = b.id_banco");
+    $cuentasList = $stmtCuentas->fetchAll(PDO::FETCH_ASSOC);
+} catch (PDOException $e) {}
+
 $mensaje = '';
 $showMessageCard = true;
 $startDate = $_GET['start_date'] ?? '';
@@ -24,16 +37,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['btnservicio'])) {
     $rawMonto = trim($_POST['monto'] ?? '');
     $monto = str_replace([' ', ','], ['', '.'], $rawMonto);
     $concepto = trim($_POST['concepto'] ?? '');
-    $metodo_pago = $_POST['metodo_pago'] ?? 'Efectivo';
     $fecha = $_POST['fecha'] ?? date('Y-m-d');
+    $id_metodo = !empty($_POST['id_metodo']) ? intval($_POST['id_metodo']) : null;
+    $id_cuenta = !empty($_POST['id_cuenta']) ? intval($_POST['id_cuenta']) : null;
 
     if (!is_numeric($monto) || floatval($monto) <= 0 || empty($concepto)) {
         $mensaje = '<article class="alert alert-warning">Completa el concepto y verifica que el monto sea mayor a 0.</article>';
+        $montoValor = htmlspecialchars($rawMonto);
+        $conceptoValor = htmlspecialchars($concepto);
+        $fechaValor = htmlspecialchars($fecha);
+        $idMetodoValor = $id_metodo;
+        $idCuentaValor = $id_cuenta;
         include "../vista/registro_servicio.php";
         exit();
     }
 
-    $resultado = $objServicio->registrar(floatval($monto), $concepto, $metodo_pago, $fecha, $id_admin);
+    $resultado = $objServicio->registrar(floatval($monto), $concepto, $id_metodo, $id_cuenta, $fecha, $id_admin);
     if ($resultado === 'success') {
         header("Location: ../controlador/PagoServicioController.php?msj=creado");
         exit();
@@ -48,14 +67,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['btnactualizarservicio
     $rawMonto = trim($_POST['monto'] ?? '');
     $monto = str_replace([' ', ','], ['', '.'], $rawMonto);
     $concepto = trim($_POST['concepto'] ?? '');
-    $metodo_pago = $_POST['metodo_pago'] ?? 'Efectivo';
     $fecha = $_POST['fecha'] ?? date('Y-m-d');
+    $id_metodo = !empty($_POST['id_metodo']) ? intval($_POST['id_metodo']) : null;
+    $id_cuenta = !empty($_POST['id_cuenta']) ? intval($_POST['id_cuenta']) : null;
 
     if (!is_numeric($monto) || floatval($monto) <= 0) {
         header("Location: ../controlador/PagoServicioController.php?msj=error");
         exit();
     }
-    $actualizado = $objServicio->actualizar($id, floatval($monto), $concepto, $metodo_pago, $fecha);
+    $actualizado = $objServicio->actualizar($id, floatval($monto), $concepto, $id_metodo, $id_cuenta, $fecha);
     if ($actualizado) {
         header("Location: ../controlador/PagoServicioController.php?msj=actualizado");
         exit();
@@ -77,8 +97,9 @@ if (isset($_GET['action']) && $_GET['action'] === 'eliminar' && isset($_GET['id'
 if (isset($_GET['action']) && $_GET['action'] === 'nuevo') {
     $montoValor = '';
     $conceptoValor = '';
-    $metodoValor = 'Efectivo';
     $fechaValor = date('Y-m-d');
+    $idMetodoValor = '';
+    $idCuentaValor = '';
     include "../vista/registro_servicio.php";
     exit();
 }
@@ -89,6 +110,8 @@ if (isset($_GET['action']) && $_GET['action'] === 'editar' && isset($_GET['id'])
         header("Location: ../controlador/PagoServicioController.php?msj=error");
         exit();
     }
+    $idMetodoValor = $servicio['id_metodo'] ?? '';
+    $idCuentaValor = $servicio['id_cuenta'] ?? '';
     include "../vista/editar_servicio.php";
     exit();
 }

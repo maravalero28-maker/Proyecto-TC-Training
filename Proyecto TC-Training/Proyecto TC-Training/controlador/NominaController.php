@@ -14,6 +14,19 @@ $db = $database->getConexion();
 $objNomina = new ModelNomina($db);
 $objEntrenador = new Entrenador($db);
 
+// Obtener métodos de pago y cuentas desde la BD
+$metodosPagoList = [];
+try {
+    $stmtMetodos = $db->query("SELECT id_metodo, nombre FROM metodo_pago");
+    $metodosPagoList = $stmtMetodos->fetchAll(PDO::FETCH_ASSOC);
+} catch (PDOException $e) {}
+
+$cuentasList = [];
+try {
+    $stmtCuentas = $db->query("SELECT c.id_cuenta, c.num_cuenta, c.tipo_moneda, b.nombre AS banco_nombre FROM cuenta c INNER JOIN banco b ON c.id_banco = b.id_banco");
+    $cuentasList = $stmtCuentas->fetchAll(PDO::FETCH_ASSOC);
+} catch (PDOException $e) {}
+
 $mensaje = '';
 $showMessageCard = true;
 $startDate = $_GET['start_date'] ?? '';
@@ -28,20 +41,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['btnnomina'])) {
     $monto = str_replace([' ', ','], ['', '.'], $rawMonto);
     $fecha = $_POST['fecha_pago'] ?? date('Y-m-d');
     $concepto = trim($_POST['concepto'] ?? 'Pago de Nómina / Honorarios');
-    $metodo_pago = $_POST['metodo_pago'] ?? 'Efectivo';
+    $id_metodo = !empty($_POST['id_metodo']) ? intval($_POST['id_metodo']) : null;
+    $id_cuenta = !empty($_POST['id_cuenta']) ? intval($_POST['id_cuenta']) : null;
 
-    $allowedMethods = ['Efectivo','Transferencia','Pago Móvil','Divisas'];
     if (!is_numeric($monto) || floatval($monto) <= 0 || empty($id_entrenador)) {
         $mensaje = '<article class="alert alert-warning">Por favor completa los campos obligatorios y verifica que el monto sea mayor a 0.</article>';
         $entrenadores = $objEntrenador->obtenerTodos('activo');
+        $id_entrenadorValor = $id_entrenador;
+        $idMetodoValor = $id_metodo;
+        $idCuentaValor = $id_cuenta;
+        $montoValor = htmlspecialchars($rawMonto);
+        $fechaValor = htmlspecialchars($fecha);
         include "../vista/registro_nomina.php";
         exit();
     }
-    if (!in_array($metodo_pago, $allowedMethods)) {
-        $metodo_pago = 'Efectivo';
-    }
 
-    $resultado = $objNomina->registrar($id_entrenador, $id_admin, floatval($monto), $fecha, $concepto, $metodo_pago);
+    $resultado = $objNomina->registrar($id_entrenador, $id_admin, floatval($monto), $fecha, $concepto, $id_metodo, $id_cuenta);
     if ($resultado === 'success') {
         header("Location: ../controlador/NominaController.php?msj=creado");
         exit();
@@ -59,13 +74,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['btnactualizarnomina']
     $monto = str_replace([' ', ','], ['', '.'], $rawMonto);
     $fecha = $_POST['fecha_pago'] ?? date('Y-m-d');
     $concepto = trim($_POST['concepto'] ?? '');
-    $metodo_pago = $_POST['metodo_pago'] ?? 'Efectivo';
+    $id_metodo = !empty($_POST['id_metodo']) ? intval($_POST['id_metodo']) : null;
+    $id_cuenta = !empty($_POST['id_cuenta']) ? intval($_POST['id_cuenta']) : null;
 
     if (!is_numeric($monto) || floatval($monto) <= 0) {
         header("Location: ../controlador/NominaController.php?msj=error");
         exit();
     }
-    $actualizado = $objNomina->actualizar($id_nomina, $id_entrenador, floatval($monto), $fecha, $concepto, $metodo_pago);
+    $actualizado = $objNomina->actualizar($id_nomina, $id_entrenador, floatval($monto), $fecha, $concepto, $id_metodo, $id_cuenta);
     if ($actualizado) {
         header("Location: ../controlador/NominaController.php?msj=actualizado");
         exit();
@@ -89,7 +105,8 @@ if (isset($_GET['action']) && $_GET['action'] === 'nuevo') {
     $montoValor = '';
     $fechaValor = date('Y-m-d');
     $conceptoValor = 'Pago de Nómina / Honorarios';
-    $metodoValor = '';
+    $idMetodoValor = '';
+    $idCuentaValor = '';
     $id_entrenadorValor = '';
     include "../vista/registro_nomina.php";
     exit();
@@ -102,6 +119,8 @@ if (isset($_GET['action']) && $_GET['action'] === 'editar' && isset($_GET['id'])
         exit();
     }
     $entrenadores = $objEntrenador->obtenerTodos('todos');
+    $idMetodoValor = $nomina['id_metodo'] ?? '';
+    $idCuentaValor = $nomina['id_cuenta'] ?? '';
     include "../vista/editar_nomina.php";
     exit();
 }
@@ -151,6 +170,9 @@ try {
     $nominaMatrix = [];
 }
 
+///////////////////////////////////////////////////
+// BLOQUE AJAX (Al final, cuando ya existen las variables calculadas)
+////////////////////////////////////////////////
 if (isset($_GET['ajax']) && $_GET['ajax']) {
     header('Content-Type: application/json; charset=utf-8');
     echo json_encode([
@@ -162,6 +184,7 @@ if (isset($_GET['ajax']) && $_GET['ajax']) {
     ]);
     exit();
 }
+////////////////////////////////////////
 
 include "../vista/nomina.php";
 ?>

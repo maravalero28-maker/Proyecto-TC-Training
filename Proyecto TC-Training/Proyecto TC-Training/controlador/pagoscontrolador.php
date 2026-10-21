@@ -17,6 +17,19 @@ $objCliente = new Cliente($db);
 $objPlan = new Plan($db);
 $planes = $objPlan->obtenerTodos();
 
+// Obtener métodos de pago y cuentas desde la BD
+$metodosPagoList = [];
+try {
+    $stmtMetodos = $db->query("SELECT id_metodo, nombre FROM metodo_pago");
+    $metodosPagoList = $stmtMetodos->fetchAll(PDO::FETCH_ASSOC);
+} catch (PDOException $e) {}
+
+$cuentasList = [];
+try {
+    $stmtCuentas = $db->query("SELECT c.id_cuenta, c.num_cuenta, c.tipo_moneda, b.nombre AS banco_nombre FROM cuenta c INNER JOIN banco b ON c.id_banco = b.id_banco");
+    $cuentasList = $stmtCuentas->fetchAll(PDO::FETCH_ASSOC);
+} catch (PDOException $e) {}
+
 $mensaje = '';
 $showMessageCard = true;
 $filtro = $_GET['filter'] ?? 'todos';
@@ -38,27 +51,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['btnpago'])) {
         $monto = str_replace(',', '.', $monto);
     }
     $fecha = $_POST['fecha'] ?? date('Y-m-d');
-    $metodo_pago = $_POST['metodo_pago'] ?? null;
+    $id_metodo = !empty($_POST['id_metodo']) ? intval($_POST['id_metodo']) : null;
+    $id_cuenta = !empty($_POST['id_cuenta']) ? intval($_POST['id_cuenta']) : null;
     $plan_id = $_POST['plan_id'] ?? '';
 
-    
-    $allowedMethods = ['Efectivo','Transferencia','Pago Móvil','Divisas'];
     if (!is_numeric($monto) || floatval($monto) <= 0) {
         $mensaje = '<article class="alert alert-warning">El monto debe ser un número mayor que 0.</article>';
         $clientes = $objPago->obtenerClientes();
         $id_clienteValor = $id_cliente;
         $plan_idValor = $plan_id;
-        $metodoValor = $metodo_pago;
+        $idMetodoValor = $id_metodo;
+        $idCuentaValor = $id_cuenta;
         $montoValor = htmlspecialchars($rawMonto);
         $fechaValor = htmlspecialchars($fecha);
         include "../vista/registropago.php";
         exit();
     }
-    if (!in_array($metodo_pago, $allowedMethods)) {
-        $metodo_pago = null; 
-    }
 
-    $resultado = $objPago->registrar($id_cliente, floatval($monto), $fecha, $metodo_pago);
+    $resultado = $objPago->registrar($id_cliente, floatval($monto), $fecha, $id_metodo, $id_cuenta);
 
     if ($resultado === 'success') {
         if (!empty($plan_id) && is_numeric($plan_id)) {
@@ -78,7 +88,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['btnpago'])) {
     $clientes = $objPago->obtenerClientes();
     $id_clienteValor = $id_cliente;
     $plan_idValor = $plan_id;
-    $metodoValor = $metodo_pago;
+    $idMetodoValor = $id_metodo;
+    $idCuentaValor = $id_cuenta;
     $montoValor = htmlspecialchars($rawMonto);
     $fechaValor = htmlspecialchars($fecha);
     include "../vista/registropago.php";
@@ -97,19 +108,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['btnactualizarpago']))
         $monto = str_replace(',', '.', $monto);
     }
     $fecha = $_POST['fecha'] ?? date('Y-m-d');
-    $metodo_pago = $_POST['metodo_pago'] ?? null;
+    $id_metodo = !empty($_POST['id_metodo']) ? intval($_POST['id_metodo']) : null;
+    $id_cuenta = !empty($_POST['id_cuenta']) ? intval($_POST['id_cuenta']) : null;
     $plan_id = $_POST['plan_id'] ?? '';
 
-    
-    $allowedMethods = ['Efectivo','Transferencia','Pago Móvil','Divisas'];
     if (!is_numeric($monto) || floatval($monto) <= 0) {
         header("Location: ../controlador/pagoscontrolador.php?msj=error");
         exit();
     }
-    if (!in_array($metodo_pago, $allowedMethods)) {
-        $metodo_pago = null;
-    }
-    $actualizado = $objPago->actualizar($id_pago, $id_cliente, floatval($monto), $fecha, $metodo_pago);
+
+    $actualizado = $objPago->actualizar($id_pago, $id_cliente, floatval($monto), $fecha, $id_metodo, $id_cuenta);
     if ($actualizado) {
         if (!empty($plan_id) && is_numeric($plan_id)) {
             $objCliente->actualizarPlan($id_cliente, intval($plan_id));
@@ -122,7 +130,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['btnactualizarpago']))
         exit();
     }
 }
-
 
 if (isset($_GET['action']) && $_GET['action'] === 'eliminar' && isset($_GET['id'])) {
     $id_pago = intval($_GET['id']);
@@ -142,7 +149,8 @@ if (isset($_GET['action']) && $_GET['action'] === 'nuevo') {
     $plan_idValor = '';
     $montoValor = '';
     $fechaValor = date('Y-m-d');
-    $metodoValor = '';
+    $idMetodoValor = '';
+    $idCuentaValor = '';
     include "../vista/registropago.php";
     exit();
 }
@@ -157,25 +165,13 @@ if (isset($_GET['action']) && $_GET['action'] === 'editar' && isset($_GET['id'])
     $clientes = $objPago->obtenerClientes(false);
     $id_pagoValor = $pago['id_pago'];
     $id_clienteValor = $pago['id_cliente'];
-    $montoValor = $pago['Monto'];
-    $fechaValor = $pago['Fecha'];
-    $metodoValor = $pago['MetodoPago'] ?? '';
+    $montoValor = $pago['Monto'] ?? $pago['monto'];
+    $fechaValor = $pago['Fecha'] ?? $pago['fecha'];
+    $idMetodoValor = $pago['id_metodo'] ?? '';
+    $idCuentaValor = $pago['id_cuenta'] ?? '';
     $plan_idValor = '';
     include "../vista/editar_pago.php";
     exit();
-}
-
-if (isset($_GET['msj'])) {
-    if ($_GET['msj'] === 'creado') {
-        $mensaje = '<article class="alert alert-success">Pago registrado correctamente.</article>';
-        $showMessageCard = false;
-    } elseif ($_GET['msj'] === 'actualizado') {
-        $mensaje = '<article class="alert alert-success">Pago actualizado correctamente.</article>';
-    } elseif ($_GET['msj'] === 'error') {
-        $mensaje = '<article class="alert alert-danger">Ocurrió un error al procesar la solicitud.</article>';
-    } elseif ($_GET['msj'] === 'eliminado') {
-        $mensaje = '<article class="alert alert-success">Pago eliminado correctamente.</article>';
-    }
 }
 
 $year = isset($_GET['year']) ? intval($_GET['year']) : (int)date('Y');
@@ -188,91 +184,14 @@ $filters = [
 ];
 $pagos = $objPago->obtenerTodos($search, $year, $filters);
 $clientsList = $objPago->obtenerClientes(true, $search);
-$paymentsMatrix = [];
-try {
-    
-    $sql = "SELECT p.id_cliente, MONTH(p.Fecha) AS mes, SUM(p.Monto) AS total, COUNT(p.id_pago) AS count_payments FROM pagos p INNER JOIN cliente c ON p.id_cliente = c.id_cliente";
-    $params = [];
-    $conds = [];
-
-    if (!empty($filters['start_date'])) {
-        $conds[] = "p.Fecha >= ?";
-        $params[] = $filters['start_date'];
-    }
-    if (!empty($filters['end_date'])) {
-        $conds[] = "p.Fecha <= ?";
-        $params[] = $filters['end_date'];
-    }
-    if (!empty($filters['metodo_pago']) && $filters['metodo_pago'] !== 'todos') {
-        $conds[] = "p.MetodoPago = ?";
-        $params[] = $filters['metodo_pago'];
-    }
-    if (!empty($filters['plan']) && $filters['plan'] !== 'todos') {
-        $conds[] = "c.Plan = ?";
-        $params[] = $filters['plan'];
-    }
-    if (!empty($filters['solvencia']) && $filters['solvencia'] !== 'todos') {
-        $conds[] = "c.Solvencia = ?";
-        $params[] = $filters['solvencia'];
-    }
-    if (empty($filters['start_date']) && empty($filters['end_date']) && !empty($year)) {
-        $conds[] = "YEAR(p.Fecha) = ?";
-        $params[] = $year;
-    }
-    if (!empty($search) && $search !== 'todos') {
-        $conds[] = "(c.Nombre LIKE ? OR c.apellido LIKE ? OR CONCAT(c.Nombre,' ',c.apellido) LIKE ?)";
-        $params[] = "%{$search}%";
-        $params[] = "%{$search}%";
-        $params[] = "%{$search}%";
-    }
-
-    if (!empty($conds)) {
-        $sql .= ' WHERE ' . implode(' AND ', $conds);
-    }
-    $sql .= ' GROUP BY p.id_cliente, MONTH(p.Fecha)';
-    $stmt = $db->prepare($sql);
-    $stmt->execute($params);
-    $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    foreach ($rows as $r) {
-        $paymentsMatrix[intval($r['id_cliente'])][intval($r['mes'])] = [
-            'count' => intval($r['count_payments']),
-            'total' => floatval($r['total'])
-        ];
-    }
-} catch (PDOException $e) {
-    $paymentsMatrix = [];
-}
-
-$solvencyDistribution = [
-    'Solvente' => 0,
-    'Insolvente' => 0,
-    'En Mora' => 0,
-    'Inactivo' => 0
-];
-try {
-    $stmt = $db->query("SELECT Solvencia, COUNT(*) AS total FROM cliente GROUP BY Solvencia");
-    $stats = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    foreach ($stats as $row) {
-        $key = trim($row['Solvencia']);
-        if ($key === '') {
-            $key = 'Inactivo';
-        }
-        $solvencyDistribution[$key] = intval($row['total']);
-    }
-} catch (PDOException $e) {
-    
-}
-
 
 if (isset($_GET['ajax']) && $_GET['ajax']) {
     header('Content-Type: application/json; charset=utf-8');
     echo json_encode([
         'pagos' => $pagos,
         'clientsList' => $clientsList,
-        'paymentsMatrix' => $paymentsMatrix,
         'year' => $year,
-        'filters' => $filters,
-        'solvencyDistribution' => $solvencyDistribution
+        'filters' => $filters
     ]);
     exit();
 }
