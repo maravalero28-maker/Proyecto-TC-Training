@@ -90,7 +90,7 @@ class Entrenador {
     }
 
     public function eliminar($cedula) {
-        $sql = "DELETE FROM entrenador WHERE cedula = ?";
+        $sql = "UPDATE entrenador SET estatus = 'inactivo' WHERE cedula = ?";
         try {
             $stmt = $this->db->prepare($sql);
             return $stmt->execute([$cedula]);

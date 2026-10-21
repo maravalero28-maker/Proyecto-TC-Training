@@ -109,7 +109,7 @@ class Cliente {
     }
 
     public function eliminar($id) {
-        $sql = "DELETE FROM cliente WHERE id_cliente = ?";
+        $sql = "UPDATE cliente SET estatus = 'inactivo' WHERE id_cliente = ?";
         try {
             $stmt = $this->db->prepare($sql);
             return $stmt->execute([$id]);
@@ -226,5 +226,6 @@ class Cliente {
             return false;
         }
     }
+    
 }
 ?>
