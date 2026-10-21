@@ -9,19 +9,18 @@ class ModelPagoServicio {
     }
 
     private function asegurarTabla() {
-        $sql = "CREATE TABLE IF NOT EXISTS pago_servicio (
-            id_pago_servicio INT(11) NOT NULL AUTO_INCREMENT,
-            monto DECIMAL(10,2) NOT NULL,
-            concepto VARCHAR(80) NOT NULL,
-            metodo_pago VARCHAR(80) NOT NULL,
-            fecha DATE NOT NULL DEFAULT CURRENT_DATE,
-            id_admin INT(11) DEFAULT NULL,
-            PRIMARY KEY (id_pago_servicio),
-            KEY fk_id_admin (id_admin),
-            CONSTRAINT fk_servicio_admin FOREIGN KEY (id_admin) REFERENCES administrador(id_admin)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci";
         try {
-            $this->db->exec($sql);
+            $stmtMetodo = $this->db->prepare("SHOW COLUMNS FROM pago_servicio LIKE 'id_metodo'");
+            $stmtMetodo->execute();
+            if ($stmtMetodo->rowCount() === 0) {
+                $this->db->exec("ALTER TABLE pago_servicio ADD COLUMN id_metodo INT(11) DEFAULT NULL");
+            }
+
+            $stmtCuenta = $this->db->prepare("SHOW COLUMNS FROM pago_servicio LIKE 'id_cuenta'");
+            $stmtCuenta->execute();
+            if ($stmtCuenta->rowCount() === 0) {
+                $this->db->exec("ALTER TABLE pago_servicio ADD COLUMN id_cuenta INT(11) DEFAULT NULL");
+            }
         } catch (PDOException $e) {
             $this->lastError = $e->getMessage();
         }
@@ -31,14 +30,17 @@ class ModelPagoServicio {
         return $this->lastError;
     }
 
-    public function registrar($monto, $concepto, $metodo_pago, $fecha, $id_admin) {
+    public function registrar($monto, $concepto, $id_metodo, $id_cuenta, $fecha, $id_admin) {
         if (empty($monto) || empty($concepto) || empty($fecha)) {
             return "warning";
         }
-        $sql = "INSERT INTO pago_servicio (monto, concepto, metodo_pago, fecha, id_admin) VALUES (?, ?, ?, ?, ?)";
+        $id_metodo = !empty($id_metodo) ? intval($id_metodo) : null;
+        $id_cuenta = !empty($id_cuenta) ? intval($id_cuenta) : null;
+
+        $sql = "INSERT INTO pago_servicio (monto, concepto, id_metodo, id_cuenta, fecha, id_admin) VALUES (?, ?, ?, ?, ?, ?)";
         try {
             $stmt = $this->db->prepare($sql);
-            $stmt->execute([$monto, $concepto, $metodo_pago, $fecha, $id_admin]);
+            $stmt->execute([$monto, $concepto, $id_metodo, $id_cuenta, $fecha, $id_admin]);
             return "success";
         } catch (PDOException $e) {
             $this->lastError = $e->getMessage();
@@ -47,12 +49,21 @@ class ModelPagoServicio {
     }
 
     public function obtenerTodos($search = '', $year = null, $options = []) {
-        $sql = "SELECT ps.*, a.Usuario AS NombreAdmin FROM pago_servicio ps LEFT JOIN administrador a ON ps.id_admin = a.id_admin";
+        $sql = "SELECT ps.*, 
+                       m.nombre AS nombre_metodo, 
+                       c.num_cuenta, 
+                       b.nombre AS banco_nombre,
+                       a.Usuario AS NombreAdmin 
+                FROM pago_servicio ps 
+                LEFT JOIN administrador a ON ps.id_admin = a.id_admin
+                LEFT JOIN metodo_pago m ON ps.id_metodo = m.id_metodo
+                LEFT JOIN cuenta c ON ps.id_cuenta = c.id_cuenta
+                LEFT JOIN banco b ON c.id_banco = b.id_banco";
         $params = [];
         $conds = [];
 
         if (!empty($search) && $search !== 'todos') {
-            $conds[] = "(ps.concepto LIKE ? OR ps.metodo_pago LIKE ?)";
+            $conds[] = "(ps.concepto LIKE ? OR m.nombre LIKE ?)";
             $params[] = "%{$search}%";
             $params[] = "%{$search}%";
         }
@@ -65,7 +76,7 @@ class ModelPagoServicio {
             $params[] = $options['end_date'];
         }
         if (!empty($options['metodo_pago']) && $options['metodo_pago'] !== 'todos') {
-            $conds[] = "ps.metodo_pago = ?";
+            $conds[] = "ps.id_metodo = ?";
             $params[] = $options['metodo_pago'];
         }
         if (!empty($year) && is_numeric($year) && empty($options['start_date']) && empty($options['end_date'])) {
@@ -98,11 +109,14 @@ class ModelPagoServicio {
         }
     }
 
-    public function actualizar($id, $monto, $concepto, $metodo_pago, $fecha) {
-        $sql = "UPDATE pago_servicio SET monto = ?, concepto = ?, metodo_pago = ?, fecha = ? WHERE id_pago_servicio = ?";
+    public function actualizar($id, $monto, $concepto, $id_metodo, $id_cuenta, $fecha) {
+        $id_metodo = !empty($id_metodo) ? intval($id_metodo) : null;
+        $id_cuenta = !empty($id_cuenta) ? intval($id_cuenta) : null;
+
+        $sql = "UPDATE pago_servicio SET monto = ?, concepto = ?, id_metodo = ?, id_cuenta = ?, fecha = ? WHERE id_pago_servicio = ?";
         try {
             $stmt = $this->db->prepare($sql);
-            return $stmt->execute([$monto, $concepto, $metodo_pago, $fecha, $id]);
+            return $stmt->execute([$monto, $concepto, $id_metodo, $id_cuenta, $fecha, $id]);
         } catch (PDOException $e) {
             return false;
         }

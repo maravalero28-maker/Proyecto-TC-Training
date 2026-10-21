@@ -9,40 +9,38 @@ class ModelPago {
     }
 
     private function asegurarTablaPagos() {
-        $sql = "CREATE TABLE IF NOT EXISTS pagos (
-            id_pago INT(11) NOT NULL AUTO_INCREMENT,
-            id_cliente INT(11) NOT NULL,
-            Monto DECIMAL(10,2) NOT NULL,
-            Fecha DATE NOT NULL,
-            MetodoPago VARCHAR(50) DEFAULT NULL,
-            fecha_registro TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            PRIMARY KEY (id_pago),
-            KEY idx_id_cliente (id_cliente),
-            CONSTRAINT fk_pagos_cliente FOREIGN KEY (id_cliente) REFERENCES cliente(id_cliente) ON DELETE CASCADE
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci";
-
         try {
-            $this->db->exec($sql);
-            $stmt = $this->db->prepare("SHOW COLUMNS FROM pagos LIKE 'MetodoPago'");
-            $stmt->execute();
-            if ($stmt->rowCount() === 0) {
-                $this->db->exec("ALTER TABLE pagos ADD COLUMN MetodoPago VARCHAR(50) DEFAULT NULL");
+            // Verificar y asegurar columnas id_metodo e id_cuenta en la tabla pagos
+            $stmtMetodo = $this->db->prepare("SHOW COLUMNS FROM pagos LIKE 'id_metodo'");
+            $stmtMetodo->execute();
+            if ($stmtMetodo->rowCount() === 0) {
+                $this->db->exec("ALTER TABLE pagos ADD COLUMN id_metodo INT(11) DEFAULT NULL");
+            }
+
+            $stmtCuenta = $this->db->prepare("SHOW COLUMNS FROM pagos LIKE 'id_cuenta'");
+            $stmtCuenta->execute();
+            if ($stmtCuenta->rowCount() === 0) {
+                $this->db->exec("ALTER TABLE pagos ADD COLUMN id_cuenta INT(11) DEFAULT NULL");
             }
         } catch (PDOException $e) {
             
         }
     }
 
-    public function registrar($id_cliente, $monto, $fecha, $metodo_pago = null) {
+    public function registrar($id_cliente, $monto, $fecha, $id_metodo = null, $id_cuenta = null) {
         if (empty($id_cliente) || empty($monto) || empty($fecha)) {
             return "warning";
         }
 
-        $sql = "INSERT INTO pagos (id_cliente, Monto, Fecha, MetodoPago) VALUES (?, ?, ?, ?)";
+        // Manejar valores vacíos como NULL para evitar errores de llave foránea
+        $id_metodo = !empty($id_metodo) ? intval($id_metodo) : null;
+        $id_cuenta = !empty($id_cuenta) ? intval($id_cuenta) : null;
+
+        $sql = "INSERT INTO pagos (id_cliente, Monto, Fecha, id_metodo, id_cuenta) VALUES (?, ?, ?, ?, ?)";
 
         try {
             $stmt = $this->db->prepare($sql);
-            $stmt->execute([$id_cliente, $monto, $fecha, $metodo_pago]);
+            $stmt->execute([$id_cliente, $monto, $fecha, $id_metodo, $id_cuenta]);
             return "success";
         } catch (PDOException $e) {
             $this->lastError = $e->getMessage();
@@ -55,11 +53,13 @@ class ModelPago {
     }
 
     public function obtenerTodos($filtro = 'todos', $year = null, $options = []) {
-        $sql = "SELECT p.id_pago, p.id_cliente, p.Monto, p.Fecha, p.MetodoPago,
+        $sql = "SELECT p.id_pago, p.id_cliente, p.Monto, p.Fecha, p.id_metodo, p.id_cuenta,
+                       m.nombre AS nombre_metodo,
                        CONCAT(c.Nombre, ' ', c.apellido) AS NombreCliente,
                        c.Plan, c.Solvencia, c.estatus
                 FROM pagos p
-                INNER JOIN cliente c ON p.id_cliente = c.id_cliente";
+                INNER JOIN cliente c ON p.id_cliente = c.id_cliente
+                LEFT JOIN metodo_pago m ON p.id_metodo = m.id_metodo";
         $params = [];
         $conds = [];
 
@@ -80,7 +80,7 @@ class ModelPago {
         }
 
         if (!empty($options['metodo_pago']) && $options['metodo_pago'] !== 'todos') {
-            $conds[] = "p.MetodoPago = ?";
+            $conds[] = "p.id_metodo = ?";
             $params[] = $options['metodo_pago'];
         }
 
@@ -103,7 +103,8 @@ class ModelPago {
             $sql .= ' WHERE ' . implode(' AND ', $conds);
         }
 
-        $sql .= " ORDER BY p.Fecha DESC";
+        // ORDENADO Por fecha más reciente primero y por ID descendente como respaldo secundario
+        $sql .= " ORDER BY p.Fecha DESC, p.id_pago DESC";
 
         try {
             $stmt = $this->db->prepare($sql);
@@ -115,7 +116,7 @@ class ModelPago {
     }
 
     public function obtenerPorId($id) {
-        $sql = "SELECT p.id_pago, p.id_cliente, p.Monto, p.Fecha, p.MetodoPago,
+        $sql = "SELECT p.id_pago, p.id_cliente, p.Monto, p.Fecha, p.id_metodo, p.id_cuenta,
                        CONCAT(c.Nombre, ' ', c.apellido) AS NombreCliente
                 FROM pagos p
                 INNER JOIN cliente c ON p.id_cliente = c.id_cliente
@@ -129,12 +130,16 @@ class ModelPago {
         }
     }
 
-    public function actualizar($id_pago, $id_cliente, $monto, $fecha, $metodo_pago = null) {
-        $sql = "UPDATE pagos SET id_cliente = ?, Monto = ?, Fecha = ?, MetodoPago = ? WHERE id_pago = ?";
+    public function actualizar($id_pago, $id_cliente, $monto, $fecha, $id_metodo = null, $id_cuenta = null) {
+        $id_metodo = !empty($id_metodo) ? intval($id_metodo) : null;
+        $id_cuenta = !empty($id_cuenta) ? intval($id_cuenta) : null;
+
+        $sql = "UPDATE pagos SET id_cliente = ?, Monto = ?, Fecha = ?, id_metodo = ?, id_cuenta = ? WHERE id_pago = ?";
         try {
             $stmt = $this->db->prepare($sql);
-            return $stmt->execute([$id_cliente, $monto, $fecha, $metodo_pago ?? null, $id_pago]);
+            return $stmt->execute([$id_cliente, $monto, $fecha, $id_metodo, $id_cuenta, $id_pago]);
         } catch (PDOException $e) {
+            $this->lastError = $e->getMessage();
             return false;
         }
     }
