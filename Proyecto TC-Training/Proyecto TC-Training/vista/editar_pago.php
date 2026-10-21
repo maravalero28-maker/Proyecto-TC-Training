@@ -8,7 +8,6 @@ if (!isset($pago) && !isset($id_pagoValor)) {
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-
     <title>Editar Pago | TC-Control</title>
     <link rel="stylesheet" href="../estilos.css">
     <link rel="stylesheet" href="../responsive.css">
@@ -57,7 +56,7 @@ if (!isset($pago) && !isset($id_pagoValor)) {
 
                 <fieldset class="form-group">
                     <label for="monto" class="form-label">Monto</label>
-                      <input type="number" step="0.01" min="0.01" id="monto" name="monto" class="form-control" 
+                    <input type="number" step="0.01" min="0.01" id="monto" name="monto" class="form-control" 
                           value="<?php echo htmlspecialchars($montoValor); ?>" required>
                     <p class="error-msg">El monto es obligatorio.</p>
                 </fieldset>
@@ -70,12 +69,25 @@ if (!isset($pago) && !isset($id_pagoValor)) {
                 </fieldset>
 
                 <fieldset class="form-group">
-                    <label for="metodo_pago" class="form-label">Método de pago</label>
-                    <select id="metodo_pago" name="metodo_pago" class="form-control">
-                        <?php $metodos = ['Efectivo','Transferencia','Pago Móvil','Divisas']; ?>
+                    <label for="id_metodo" class="form-label">Método de pago</label>
+                    <select id="id_metodo" name="id_metodo" class="form-control" required>
                         <option value="">Seleccione método</option>
-                        <?php foreach($metodos as $m): ?>
-                            <option value="<?php echo $m; ?>" <?php echo (isset($metodoValor) && $metodoValor === $m) ? 'selected' : ''; ?>><?php echo $m; ?></option>
+                        <?php foreach($metodosPagoList as $metodo): ?>
+                            <option value="<?php echo $metodo['id_metodo']; ?>" <?php echo (isset($idMetodoValor) && $idMetodoValor == $metodo['id_metodo']) ? 'selected' : ''; ?>>
+                                <?php echo htmlspecialchars($metodo['nombre']); ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </fieldset>
+
+                <fieldset class="form-group">
+                    <label for="id_cuenta" class="form-label">Cuenta / Banco Receptora</label>
+                    <select id="id_cuenta" name="id_cuenta" class="form-control">
+                        <option value="">Seleccione cuenta (Opcional)</option>
+                        <?php foreach($cuentasList as $cuenta): ?>
+                            <option value="<?php echo $cuenta['id_cuenta']; ?>" <?php echo (isset($idCuentaValor) && $idCuentaValor == $cuenta['id_cuenta']) ? 'selected' : ''; ?>>
+                                <?php echo htmlspecialchars($cuenta['banco_nombre'] . ' - ' . $cuenta['num_cuenta'] . ' (' . $cuenta['tipo_moneda'] . ')'); ?>
+                            </option>
                         <?php endforeach; ?>
                     </select>
                 </fieldset>
@@ -91,40 +103,5 @@ if (!isset($pago) && !isset($id_pagoValor)) {
             </footer>
         </section>
     </main>
-
-    <script>
-        document.querySelector('form').addEventListener('submit', function(e) {
-            let valid = true;
-            const cliente = document.getElementById('id_cliente');
-            const monto = document.getElementById('monto');
-            const fecha = document.getElementById('fecha');
-            [cliente, monto, fecha].forEach(field => {
-                const errorMsg = field.nextElementSibling;
-                if (!String(field.value || '').trim()) {
-                    field.classList.add('error');
-                    if (errorMsg && errorMsg.classList.contains('error-msg')) {
-                        errorMsg.classList.add('show');
-                    }
-                    valid = false;
-                } else {
-                    field.classList.remove('error');
-                    if (errorMsg && errorMsg.classList.contains('error-msg')) {
-                        errorMsg.classList.remove('show');
-                    }
-                }
-            });
-
-            const normalizedMonto = monto.value.replace(/\s+/g,'').replace(',', '.');
-            const montoVal = parseFloat(normalizedMonto);
-            if (isNaN(montoVal) || montoVal <= 0) {
-                monto.classList.add('error');
-                const errorMsg = monto.nextElementSibling;
-                if (errorMsg && errorMsg.classList.contains('error-msg')) errorMsg.classList.add('show');
-                valid = false;
-            }
-
-            if (!valid) e.preventDefault();
-        });
-    </script>
 </body>
 </html>

@@ -63,12 +63,25 @@
                 </fieldset>
 
                 <fieldset class="form-group">
-                    <label for="metodo_pago" class="form-label">Método de pago</label>
-                    <select id="metodo_pago" name="metodo_pago" class="form-control">
-                        <?php $metodos = ['Efectivo','Transferencia','Pago Móvil','Divisas']; ?>
+                    <label for="id_metodo" class="form-label">Método de pago</label>
+                    <select id="id_metodo" name="id_metodo" class="form-control" required>
                         <option value="">Seleccione método</option>
-                        <?php foreach($metodos as $m): ?>
-                            <option value="<?php echo $m; ?>" <?php echo (isset($metodoValor) && $metodoValor === $m) ? 'selected' : ''; ?>><?php echo $m; ?></option>
+                        <?php foreach($metodosPagoList as $metodo): ?>
+                            <option value="<?php echo $metodo['id_metodo']; ?>" <?php echo (isset($idMetodoValor) && $idMetodoValor == $metodo['id_metodo']) ? 'selected' : ''; ?>>
+                                <?php echo htmlspecialchars($metodo['nombre']); ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </fieldset>
+
+                <fieldset class="form-group">
+                    <label for="id_cuenta" class="form-label">Cuenta / Banco Receptora</label>
+                    <select id="id_cuenta" name="id_cuenta" class="form-control">
+                        <option value="">Seleccione cuenta (Opcional)</option>
+                        <?php foreach($cuentasList as $cuenta): ?>
+                            <option value="<?php echo $cuenta['id_cuenta']; ?>" <?php echo (isset($idCuentaValor) && $idCuentaValor == $cuenta['id_cuenta']) ? 'selected' : ''; ?>>
+                                <?php echo htmlspecialchars($cuenta['banco_nombre'] . ' - ' . $cuenta['num_cuenta'] . ' (' . $cuenta['tipo_moneda'] . ')'); ?>
+                            </option>
                         <?php endforeach; ?>
                     </select>
                 </fieldset>
@@ -93,72 +106,36 @@
     </main>
 
     <script>
-                
-                (function(){
-                    const plans = <?php echo json_encode($planes, JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_AMP|JSON_HEX_QUOT); ?>;
-                    const clients = <?php echo json_encode($clientes, JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_AMP|JSON_HEX_QUOT); ?>;
-                    const plansMap = {};
-                    plans.forEach(p => { plansMap[p.id_plan] = p.nombre || p.nombre; });
-                    const clientsMap = {};
-                    clients.forEach(c => { clientsMap[c.id_cliente] = c.Plan || null; });
+        (function(){
+            const plans = <?php echo json_encode($planes, JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_AMP|JSON_HEX_QUOT); ?>;
+            const clients = <?php echo json_encode($clientes, JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_AMP|JSON_HEX_QUOT); ?>;
+            const plansMap = {};
+            plans.forEach(p => { plansMap[p.id_plan] = p.nombre; });
+            const clientsMap = {};
+            clients.forEach(c => { clientsMap[c.id_cliente] = c.Plan || null; });
 
-                    const clienteSelect = document.getElementById('id_cliente');
-                    const keepOpt = document.getElementById('keepPlanOption');
+            const clienteSelect = document.getElementById('id_cliente');
+            const keepOpt = document.getElementById('keepPlanOption');
 
-                    function updateKeepText() {
-                        const val = clienteSelect.value;
-                        if (!val) {
-                            keepOpt.textContent = 'Mantener plan actual';
-                            return;
-                        }
-                        const planId = clientsMap[val] || null;
-                        if (planId && plansMap[planId]) {
-                            keepOpt.textContent = 'Mantener plan actual (' + plansMap[planId] + ')';
-                        } else {
-                            keepOpt.textContent = 'Mantener plan actual (Sin plan)';
-                        }
-                    }
-
-                    if (clienteSelect) {
-                        clienteSelect.addEventListener('change', updateKeepText);
-                        
-                        updateKeepText();
-                    }
-                })();
-        document.getElementById('registro-pagos-form').addEventListener('submit', function(e) {
-            let valid = true;
-            const cliente = document.getElementById('id_cliente');
-            const monto = document.getElementById('monto');
-            const fecha = document.getElementById('fecha');
-
-            [cliente, monto, fecha].forEach(field => {
-                const errorMsg = field.nextElementSibling;
-                if (!String(field.value || '').trim()) {
-                    field.classList.add('error');
-                    if (errorMsg && errorMsg.classList.contains('error-msg')) {
-                        errorMsg.classList.add('show');
-                    }
-                    valid = false;
-                } else {
-                    field.classList.remove('error');
-                    if (errorMsg && errorMsg.classList.contains('error-msg')) {
-                        errorMsg.classList.remove('show');
-                    }
+            function updateKeepText() {
+                const val = clienteSelect.value;
+                if (!val) {
+                    keepOpt.textContent = 'Mantener plan actual';
+                    return;
                 }
-            });
-
-            
-            const normalizedMonto = monto.value.replace(/\s+/g,'').replace(',', '.');
-            const montoVal = parseFloat(normalizedMonto);
-            if (isNaN(montoVal) || montoVal <= 0) {
-                monto.classList.add('error');
-                const errorMsg = monto.nextElementSibling;
-                if (errorMsg && errorMsg.classList.contains('error-msg')) errorMsg.classList.add('show');
-                valid = false;
+                const planId = clientsMap[val] || null;
+                if (planId && plansMap[planId]) {
+                    keepOpt.textContent = 'Mantener plan actual (' + plansMap[planId] + ')';
+                } else {
+                    keepOpt.textContent = 'Mantener plan actual (Sin plan)';
+                }
             }
 
-            if (!valid) e.preventDefault();
-        });
+            if (clienteSelect) {
+                clienteSelect.addEventListener('change', updateKeepText);
+                updateKeepText();
+            }
+        })();
     </script>
 </body>
 </html>

@@ -209,7 +209,7 @@ if (!isset($pagos) || !isset($filtro)) {
                 <td>${escapeHtml((p.NombreCliente || '').replace(/\s+/g, ' '))}</td>
                 <td>$${formatAmount(p.Monto)}</td>
                 <td>${escapeHtml(p.Fecha || '')}</td>
-                <td>${escapeHtml(p.MetodoPago || '')}</td>
+                <td>${escapeHtml(p.nombre_metodo || p.MetodoPago || '')}</td>
                 <td>
                     <section class="transactions-actions" style="display:flex; gap:10px;">
                         <a href="../controlador/pagoscontrolador.php?action=editar&id=${encodeURIComponent(p.id_pago)}" class="text-primary" title="Editar pago">
@@ -440,7 +440,11 @@ if (!isset($pagos) || !isset($filtro)) {
 
     function updatePage(data) {
         currentReport = data;
-        const pagosFiltrados = getFilteredPagos(data);
+        let pagosFiltrados = getFilteredPagos(data);
+
+        // ORDENAR ESTRICTAMENTE POR FECHA DESCENDENTE 
+        pagosFiltrados.sort((a, b) => new Date(b.Fecha) - new Date(a.Fecha));
+
         renderPaymentsTable(pagosFiltrados);
         renderPaymentsMatrix(data);
         updateReportPreview(pagosFiltrados);

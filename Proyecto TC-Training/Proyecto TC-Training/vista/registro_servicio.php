@@ -42,11 +42,23 @@ if (!isset($mensaje) && !isset($montoValor)) {
                 </fieldset>
 
                 <fieldset class="form-group">
-                    <label for="metodo_pago" class="form-label">Método de pago</label>
-                    <select id="metodo_pago" name="metodo_pago" class="form-control">
-                        <?php $metodos = ['Efectivo','Transferencia','Pago Móvil','Divisas']; ?>
-                        <?php foreach($metodos as $m): ?>
-                            <option value="<?php echo $m; ?>" <?php echo (isset($metodoValor) && $metodoValor === $m) ? 'selected' : ''; ?>><?php echo $m; ?></option>
+                    <label for="id_metodo" class="form-label">Método de pago</label>
+                    <select id="id_metodo" name="id_metodo" class="form-control">
+                        <option value="">Seleccione método</option>
+                        <?php foreach($metodosPagoList as $m): ?>
+                            <option value="<?php echo $m['id_metodo']; ?>" <?php echo (isset($idMetodoValor) && $idMetodoValor == $m['id_metodo']) ? 'selected' : ''; ?>><?php echo htmlspecialchars($m['nombre']); ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </fieldset>
+
+                <fieldset class="form-group">
+                    <label for="id_cuenta" class="form-label">Cuenta (Opcional)</label>
+                    <select id="id_cuenta" name="id_cuenta" class="form-control">
+                        <option value="">Ninguna / Efectivo</option>
+                        <?php foreach($cuentasList as $c): ?>
+                            <option value="<?php echo $c['id_cuenta']; ?>" <?php echo (isset($idCuentaValor) && $idCuentaValor == $c['id_cuenta']) ? 'selected' : ''; ?>>
+                                <?php echo htmlspecialchars($c['banco_nombre'] . ' - ' . $c['num_cuenta'] . ' (' . $c['tipo_moneda'] . ')'); ?>
+                            </option>
                         <?php endforeach; ?>
                     </select>
                 </fieldset>

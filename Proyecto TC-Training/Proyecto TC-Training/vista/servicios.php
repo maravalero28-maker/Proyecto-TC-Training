@@ -182,7 +182,7 @@ $safeFilters = isset($filters) ? $filters : array();
                 '<td>' + escapeHtml(p.concepto || '') + '</td>' +
                 '<td>$' + formatAmount(p.monto) + '</td>' +
                 '<td>' + escapeHtml(p.fecha || '') + '</td>' +
-                '<td>' + escapeHtml(p.metodo_pago || '') + '</td>' +
+                '<td>' + escapeHtml(p.metodo_pago || p.nombre_metodo || '') + '</td>' +
                 '<td>' + escapeHtml(p.NombreAdmin || 'Sistema') + '</td>' +
                 '<td>' +
                     '<section class="transactions-actions" style="display:flex; gap:10px;">' +

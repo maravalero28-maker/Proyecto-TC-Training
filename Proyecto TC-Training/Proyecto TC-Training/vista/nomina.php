@@ -183,25 +183,34 @@ $safeFilters = isset($filters) ? $filters : array();
         });
     }
 
-    function renderPaymentsTable(pagos) {
+function renderPaymentsTable(pagos) {
         if (!paymentsTableBody) return;
         if (!pagos || pagos.length === 0) {
             paymentsTableBody.innerHTML = '<tr><td colspan="6" class="empty-table-msg">No hay pagos de nómina registrados.</td></tr>';
             return;
         }
+
         paymentsTableBody.innerHTML = pagos.map(function(p) {
+            // Imprimimos directamente lo que venga de la BD para cazar el nombre de las columnas
+            var entrenador = p.NombreEntrenador || p.nombreentrenador || p.id_entrenador || 'Desconocido';
+            var concepto = p.concepto || p.Concepto || '';
+            var monto = p.monto || p.Monto || 0;
+            var fecha = p.fecha_pago || p.Fecha_Pago || '';
+            var metodo = p.nombre_metodo || p.metodo_pago || 'Efectivo';
+            var idNomina = p.id_nomina || p.ID_Nomina || '';
+
             return '<tr>' +
-                '<td>' + escapeHtml(p.NombreEntrenador || '') + '</td>' +
-                '<td>' + escapeHtml(p.concepto || '') + '</td>' +
-                '<td>$' + formatAmount(p.monto) + '</td>' +
-                '<td>' + escapeHtml(p.fecha_pago || '') + '</td>' +
-                '<td>' + escapeHtml(p.metodo_pago || '') + '</td>' +
+                '<td>' + escapeHtml(entrenador) + '</td>' +
+                '<td>' + escapeHtml(concepto) + '</td>' +
+                '<td>$' + formatAmount(monto) + '</td>' +
+                '<td>' + escapeHtml(fecha) + '</td>' +
+                '<td>' + escapeHtml(metodo) + '</td>' +
                 '<td>' +
                     '<section class="transactions-actions" style="display:flex; gap:10px;">' +
-                        '<a href="../controlador/NominaController.php?action=editar&id=' + encodeURIComponent(p.id_nomina) + '" class="text-primary" title="Editar">' +
+                        '<a href="../controlador/NominaController.php?action=editar&id=' + encodeURIComponent(idNomina) + '" class="text-primary" title="Editar">' +
                             '<svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>' +
                         '</a>' +
-                        '<a href="../controlador/NominaController.php?action=eliminar&id=' + encodeURIComponent(p.id_nomina) + '" class="text-danger" title="Eliminar" onclick="return confirm(\'¿Eliminar este pago de nómina?\');">' +
+                        '<a href="../controlador/NominaController.php?action=eliminar&id=' + encodeURIComponent(idNomina) + '" class="text-danger" title="Eliminar" onclick="return confirm(\'¿Eliminar este pago de nómina?\');">' +
                             '<svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>' +
                         '</a>' +
                     '</section>' +
@@ -401,6 +410,7 @@ $safeFilters = isset($filters) ? $filters : array();
         });
     }
 
+    console.log("Datos iniciales de pagos:", initialReport.pagos);
     buildYearMenu();
     buildMonthMenu();
     updatePage(initialReport);

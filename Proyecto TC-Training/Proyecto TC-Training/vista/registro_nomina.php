@@ -54,11 +54,25 @@ if (!isset($mensaje) && !isset($entrenadores)) {
                 </fieldset>
 
                 <fieldset class="form-group">
-                    <label for="metodo_pago" class="form-label">Método de pago</label>
-                    <select id="metodo_pago" name="metodo_pago" class="form-control">
-                        <?php $metodos = ['Efectivo','Transferencia','Pago Móvil','Divisas']; ?>
-                        <?php foreach($metodos as $m): ?>
-                            <option value="<?php echo $m; ?>" <?php echo (isset($metodoValor) && $metodoValor === $m) ? 'selected' : ''; ?>><?php echo $m; ?></option>
+                    <label for="id_metodo" class="form-label">Método de pago</label>
+                    <select id="id_metodo" name="id_metodo" class="form-control" required>
+                        <option value="">Seleccione método</option>
+                        <?php foreach($metodosPagoList as $metodo): ?>
+                            <option value="<?php echo $metodo['id_metodo']; ?>" <?php echo (isset($idMetodoValor) && $idMetodoValor == $metodo['id_metodo']) ? 'selected' : ''; ?>>
+                                <?php echo htmlspecialchars($metodo['nombre']); ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </fieldset>
+
+                <fieldset class="form-group">
+                    <label for="id_cuenta" class="form-label">Cuenta / Banco Receptora</label>
+                    <select id="id_cuenta" name="id_cuenta" class="form-control">
+                        <option value="">Seleccione cuenta (Opcional)</option>
+                        <?php foreach($cuentasList as $cuenta): ?>
+                            <option value="<?php echo $cuenta['id_cuenta']; ?>" <?php echo (isset($idCuentaValor) && $idCuentaValor == $cuenta['id_cuenta']) ? 'selected' : ''; ?>>
+                                <?php echo htmlspecialchars($cuenta['banco_nombre'] . ' - ' . $cuenta['num_cuenta'] . ' (' . $cuenta['tipo_moneda'] . ')'); ?>
+                            </option>
                         <?php endforeach; ?>
                     </select>
                 </fieldset>
