@@ -110,8 +110,8 @@ $planEtiquetas = [
                                         </a>
                                         <a href="../controlador/ClienteController.php?action=eliminar&id=<?php echo $cliente['id_cliente']; ?>" 
                                            class="text-danger" 
-                                           title="Eliminar"
-                                           onclick="return confirm('¿Estás seguro de que deseas eliminar a este cliente?');">
+                                           title="Desactivar"
+                                           onclick="return confirm('¿Estás seguro de que deseas desactivar a este cliente? Se conservarán sus pagos e historial.');">
                                             <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
                                         </a>
                                     </section>
