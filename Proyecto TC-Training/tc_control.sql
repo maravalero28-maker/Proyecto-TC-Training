@@ -1,13 +1,14 @@
 -- phpMyAdmin SQL Dump
--- version 5.2.1
+-- version 4.8.5
 -- https://www.phpmyadmin.net/
 --
 -- Servidor: 127.0.0.1
--- Tiempo de generación: 17-10-2026 a las 15:37:39
--- Versión del servidor: 10.4.32-MariaDB
--- Versión de PHP: 8.2.12
+-- Tiempo de generación: 07-11-2026 a las 21:59:24
+-- Versión del servidor: 10.1.38-MariaDB
+-- Versión de PHP: 7.3.2
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
+SET AUTOCOMMIT = 0;
 START TRANSACTION;
 SET time_zone = "+00:00";
 
@@ -33,9 +34,9 @@ CREATE TABLE `administrador` (
   `Contrasenna` varchar(255) NOT NULL,
   `PreguntaSecreta` varchar(255) DEFAULT NULL,
   `RespuestaSecreta` varchar(255) DEFAULT NULL,
-  `fecha_creacion` timestamp NOT NULL DEFAULT current_timestamp(),
-  `id_rol` int(11) DEFAULT 1
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+  `fecha_creacion` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `id_rol` int(11) DEFAULT '1'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 --
 -- Volcado de datos para la tabla `administrador`
@@ -43,8 +44,9 @@ CREATE TABLE `administrador` (
 
 INSERT INTO `administrador` (`id_admin`, `Usuario`, `Contrasenna`, `PreguntaSecreta`, `RespuestaSecreta`, `fecha_creacion`, `id_rol`) VALUES
 (1, 'admin', '$2y$10$eOw7o.pZxKmKODOkwLqUF.YavgNDhhMH97w40qr0QyJADEImRSjii', NULL, NULL, '2026-05-09 00:00:00', 1),
-(2, 'carlosdrb@gmail.com', '$2y$10$hG4nPiJJze8LwYnhHlUx3OrfJtOjw.FPI4nDOOb6Jc/SIuzqojbbC', NULL, NULL, '2026-05-09 00:00:00', 1),
-(3, 'mara', '$2y$10$rfVGN4Me03zg0riR8Cm31.JRa2SYiDlzfC.AOmvSmNk4AT0G3aXNa', '¿Cuál es el nombre de tu mascota?', '$2y$10$8xrCsZchji0gtHBCqcZymO1vgk7B/Dv/mmZJTfLYU.eJxaHHVtrYy', '2026-10-13 14:40:33', 1);
+(2, 'jailymaife@gmail.com', '12345678', NULL, NULL, '2026-05-09 00:00:00', 1),
+(3, 'carlosdrb@gmail.com', '$2y$10$hG4nPiJJze8LwYnhHlUx3OrfJtOjw.FPI4nDOOb6Jc/SIuzqojbbC', NULL, NULL, '2026-05-09 00:00:00', 1),
+(4, 'mara', '$2y$10$rfVGN4Me03zg0riR8Cm31.JRa2SYiDlzfC.AOmvSmNk4AT0G3aXNa', '¿Cuál es el nombre de tu mascota?', '$2y$10$8xrCsZchji0gtHBCqcZymO1vgk7B/Dv/mmZJTfLYU.eJxaHHVtrYy', '2026-10-13 14:40:33', 1);
 
 -- --------------------------------------------------------
 
@@ -55,14 +57,15 @@ INSERT INTO `administrador` (`id_admin`, `Usuario`, `Contrasenna`, `PreguntaSecr
 CREATE TABLE `banco` (
   `id_banco` int(11) NOT NULL,
   `nombre` varchar(255) NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 --
 -- Volcado de datos para la tabla `banco`
 --
 
 INSERT INTO `banco` (`id_banco`, `nombre`) VALUES
-(1, 'Mercantil');
+(1, 'Mercantil'),
+(2, 'paypal');
 
 -- --------------------------------------------------------
 
@@ -79,16 +82,17 @@ CREATE TABLE `cliente` (
   `estatus` varchar(40) NOT NULL DEFAULT 'Activo',
   `Solvencia` varchar(255) NOT NULL DEFAULT 'Solvente',
   `Plan` varchar(255) NOT NULL DEFAULT 'Mensual',
-  `fecha_registro` timestamp NOT NULL DEFAULT current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+  `fecha_registro` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 --
 -- Volcado de datos para la tabla `cliente`
 --
 
 INSERT INTO `cliente` (`id_cliente`, `Nombre`, `apellido`, `telefono`, `fecha_inscripcion`, `estatus`, `Solvencia`, `Plan`, `fecha_registro`) VALUES
-(1, 'Ismael', 'Gil', '04245717884', '2026-09-01', 'activo', 'Solvente', '1', '2026-10-13 02:53:55'),
-(2, 'Adrian', 'Suarez', '04553454451', '2026-10-13', 'activo', 'Solvente', '5', '2026-10-13 14:45:37');
+(1, 'Ismael', 'Gil', '04245717884', '2026-09-01', 'activo', 'Insolvente', '1', '2026-10-13 02:53:55'),
+(2, 'Adrian', 'Suarez', '04553454451', '2026-10-13', 'activo', 'Solvente', '2', '2026-10-13 14:45:37'),
+(3, 'Alianna', 'Gutierrez', '098765432', '2026-11-07', 'activo', 'Solvente', '2', '2026-11-07 20:07:00');
 
 -- --------------------------------------------------------
 
@@ -99,19 +103,19 @@ INSERT INTO `cliente` (`id_cliente`, `Nombre`, `apellido`, `telefono`, `fecha_in
 CREATE TABLE `configuracion` (
   `id` int(11) NOT NULL,
   `nombre_empresa` varchar(255) NOT NULL DEFAULT 'TC-Control',
-  `tarifa_base` decimal(10,2) NOT NULL DEFAULT 30.00,
+  `tarifa_base` decimal(10,2) NOT NULL DEFAULT '30.00',
   `moneda` varchar(50) NOT NULL DEFAULT 'USD',
-  `vencimiento_dias` int(11) NOT NULL DEFAULT 7,
+  `vencimiento_dias` int(11) NOT NULL DEFAULT '7',
   `ingresos_periodo` varchar(50) NOT NULL DEFAULT 'semanal',
-  `ultima_actualizacion` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+  `ultima_actualizacion` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 --
 -- Volcado de datos para la tabla `configuracion`
 --
 
 INSERT INTO `configuracion` (`id`, `nombre_empresa`, `tarifa_base`, `moneda`, `vencimiento_dias`, `ingresos_periodo`, `ultima_actualizacion`) VALUES
-(1, 'Training Club, CA', 30.00, 'USD', 35, 'semanal', '2026-10-13 14:51:17');
+(1, 'Training Club, CA', '30.00', 'USD', 35, 'semanal', '2026-10-13 14:51:17');
 
 -- --------------------------------------------------------
 
@@ -124,15 +128,16 @@ CREATE TABLE `cuenta` (
   `id_banco` int(11) NOT NULL,
   `num_cuenta` varchar(100) NOT NULL,
   `tipo_moneda` varchar(50) NOT NULL,
-  `saldo` decimal(10,2) DEFAULT 0.00
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+  `saldo` decimal(10,2) DEFAULT '0.00'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 --
 -- Volcado de datos para la tabla `cuenta`
 --
 
 INSERT INTO `cuenta` (`id_cuenta`, `id_banco`, `num_cuenta`, `tipo_moneda`, `saldo`) VALUES
-(1, 1, '0605', 'BS', 10.00);
+(1, 1, '0605', 'BS', '10.00'),
+(3, 2, '65765765857', 'USD', '0.00');
 
 -- --------------------------------------------------------
 
@@ -146,8 +151,15 @@ CREATE TABLE `entrenador` (
   `apellido` varchar(150) NOT NULL,
   `telefono` varchar(25) NOT NULL,
   `estatus` varchar(20) NOT NULL DEFAULT 'activo',
-  `fecha_registro` timestamp NOT NULL DEFAULT current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+  `fecha_registro` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+--
+-- Volcado de datos para la tabla `entrenador`
+--
+
+INSERT INTO `entrenador` (`cedula`, `nombre`, `apellido`, `telefono`, `estatus`, `fecha_registro`) VALUES
+('28220253', 'Carlos Daniel', 'Rodriguez', '04265517487', 'activo', '2026-11-07 19:44:07');
 
 -- --------------------------------------------------------
 
@@ -158,7 +170,7 @@ CREATE TABLE `entrenador` (
 CREATE TABLE `metodo_pago` (
   `id_metodo` int(11) NOT NULL,
   `nombre` varchar(255) NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 --
 -- Volcado de datos para la tabla `metodo_pago`
@@ -169,7 +181,8 @@ INSERT INTO `metodo_pago` (`id_metodo`, `nombre`) VALUES
 (2, 'transferencia'),
 (3, 'pago movil'),
 (4, 'Zelle'),
-(5, 'Binance');
+(5, 'Binance'),
+(6, 'paypal');
 
 -- --------------------------------------------------------
 
@@ -184,16 +197,22 @@ CREATE TABLE `pagos` (
   `Monto` decimal(10,2) NOT NULL,
   `Fecha` date NOT NULL,
   `id_metodo` int(11) NOT NULL,
-  `fecha_registro` timestamp NOT NULL DEFAULT current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+  `fecha_registro` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `moneda` varchar(3) DEFAULT NULL,
+  `tasa` decimal(18,4) DEFAULT NULL,
+  `monto_usd` decimal(12,2) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 --
 -- Volcado de datos para la tabla `pagos`
 --
 
-INSERT INTO `pagos` (`id_pago`, `id_cliente`, `id_cuenta`, `Monto`, `Fecha`, `id_metodo`, `fecha_registro`) VALUES
-(1, 1, 1, 500.00, '2026-10-13', 1, '2026-10-13 02:54:37'),
-(2, 2, 1, 120.00, '2026-10-13', 1, '2026-10-13 14:47:49');
+INSERT INTO `pagos` (`id_pago`, `id_cliente`, `id_cuenta`, `Monto`, `Fecha`, `id_metodo`, `fecha_registro`, `moneda`, `tasa`, `monto_usd`) VALUES
+(1, 1, 1, '500.00', '2026-10-13', 1, '2026-10-13 02:54:37', NULL, NULL, NULL),
+(2, 2, 1, '120.00', '2026-10-13', 1, '2026-10-13 14:47:49', NULL, NULL, NULL),
+(3, 2, 3, '25.00', '2026-11-07', 6, '2026-11-07 14:58:25', NULL, NULL, NULL),
+(4, 2, 1, '25.00', '2026-11-07', 3, '2026-11-07 15:15:47', NULL, NULL, NULL),
+(5, 3, 1, '22403.06', '2026-11-07', 3, '2026-11-07 20:07:55', 'BS', '896.1200', '25.00');
 
 -- --------------------------------------------------------
 
@@ -210,16 +229,16 @@ CREATE TABLE `pago_nomina` (
   `fecha_pago` date NOT NULL,
   `concepto` varchar(255) DEFAULT 'Pago de Nómina / Honorarios',
   `id_metodo` int(11) NOT NULL,
-  `fecha_registro` timestamp NOT NULL DEFAULT current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+  `fecha_registro` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 --
 -- Volcado de datos para la tabla `pago_nomina`
 --
 
 INSERT INTO `pago_nomina` (`id_nomina`, `id_entrenador`, `id_admin`, `id_cuenta`, `monto`, `fecha_pago`, `concepto`, `id_metodo`, `fecha_registro`) VALUES
-(1, 28220253, 1, 1, 25.00, '2026-10-13', 'Pago de Nómina / Honorarios', 1, '2026-10-12 22:29:11'),
-(2, 28220253, 4, 1, 120.00, '2026-10-13', 'Pago de Nómina / Honorarios', 1, '2026-10-13 14:57:16');
+(1, 28220253, 1, 1, '25.00', '2026-10-13', 'Pago de Nómina / Honorarios', 1, '2026-10-12 22:29:11'),
+(2, 28220253, 4, 1, '120.00', '2026-10-13', 'Pago de Nómina / Honorarios', 1, '2026-10-13 14:57:16');
 
 -- --------------------------------------------------------
 
@@ -231,19 +250,11 @@ CREATE TABLE `pago_servicio` (
   `id_pago_servicio` int(11) NOT NULL,
   `monto` decimal(10,2) NOT NULL,
   `concepto` varchar(80) NOT NULL,
-  `id_cuenta` int(11) NOT NULL,
-  `id_metodo` int(11) NOT NULL,
-  `fecha` date NOT NULL DEFAULT curdate(),
+  `id_cuenta` int(11) DEFAULT NULL,
+  `id_metodo` int(11) DEFAULT NULL,
+  `fecha` date NOT NULL,
   `id_admin` int(11) DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
-
---
--- Volcado de datos para la tabla `pago_servicio`
---
-
-INSERT INTO `pago_servicio` (`id_pago_servicio`, `monto`, `concepto`, `id_cuenta`, `id_metodo`, `fecha`, `id_admin`) VALUES
-(1, 50.00, 'Contador', 1, 1, '2026-10-13', 1),
-(2, 100.00, 'Contador', 1, 1, '2026-10-13', 1);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- --------------------------------------------------------
 
@@ -254,21 +265,21 @@ INSERT INTO `pago_servicio` (`id_pago_servicio`, `monto`, `concepto`, `id_cuenta
 CREATE TABLE `planes` (
   `id_plan` int(11) NOT NULL,
   `nombre` varchar(120) NOT NULL,
-  `precio` decimal(10,2) NOT NULL DEFAULT 0.00,
-  `dias` int(11) NOT NULL DEFAULT 30,
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+  `precio` decimal(10,2) NOT NULL DEFAULT '0.00',
+  `dias` int(11) NOT NULL DEFAULT '30',
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 --
 -- Volcado de datos para la tabla `planes`
 --
 
 INSERT INTO `planes` (`id_plan`, `nombre`, `precio`, `dias`, `created_at`) VALUES
-(1, 'Semanal', 10.00, 7, '2026-09-22 20:29:41'),
-(2, 'Mensual', 25.00, 30, '2026-09-22 20:29:41'),
-(3, 'Anual', 300.00, 365, '2026-09-22 20:29:41'),
-(4, 'Promocion pareja o grupo', 20.00, 30, '2026-09-22 20:33:47'),
-(5, 'premium', 120.00, 30, '2026-10-13 14:44:07');
+(1, 'Semanal', '10.00', 7, '2026-09-22 20:29:41'),
+(2, 'Mensual', '25.00', 30, '2026-09-22 20:29:41'),
+(3, 'Anual', '300.00', 365, '2026-09-22 20:29:41'),
+(4, 'Promocion pareja o grupo', '20.00', 30, '2026-09-22 20:33:47'),
+(5, 'premium', '120.00', 30, '2026-10-13 14:44:07');
 
 -- --------------------------------------------------------
 
@@ -280,7 +291,7 @@ CREATE TABLE `rol_usuario` (
   `id_rol` int(11) NOT NULL,
   `nombre` varchar(255) NOT NULL,
   `descripcion` varchar(255) DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 --
 -- Volcado de datos para la tabla `rol_usuario`
@@ -289,6 +300,26 @@ CREATE TABLE `rol_usuario` (
 INSERT INTO `rol_usuario` (`id_rol`, `nombre`, `descripcion`) VALUES
 (1, 'Administrador', 'Control total del sistema'),
 (2, 'Operador', 'Gestion de clientes y pagos');
+
+-- --------------------------------------------------------
+
+--
+-- Estructura de tabla para la tabla `tasa_cambio`
+--
+
+CREATE TABLE `tasa_cambio` (
+  `id_tasa` int(11) NOT NULL,
+  `fecha` date NOT NULL,
+  `tasa` decimal(18,4) NOT NULL,
+  `id_admin` int(11) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+--
+-- Volcado de datos para la tabla `tasa_cambio`
+--
+
+INSERT INTO `tasa_cambio` (`id_tasa`, `fecha`, `tasa`, `id_admin`) VALUES
+(1, '2026-11-07', '896.1200', 1);
 
 --
 -- Índices para tablas volcadas
@@ -380,6 +411,13 @@ ALTER TABLE `rol_usuario`
   ADD PRIMARY KEY (`id_rol`);
 
 --
+-- Indices de la tabla `tasa_cambio`
+--
+ALTER TABLE `tasa_cambio`
+  ADD PRIMARY KEY (`id_tasa`),
+  ADD UNIQUE KEY `uq_tasa_fecha` (`fecha`);
+
+--
 -- AUTO_INCREMENT de las tablas volcadas
 --
 
@@ -393,13 +431,13 @@ ALTER TABLE `administrador`
 -- AUTO_INCREMENT de la tabla `banco`
 --
 ALTER TABLE `banco`
-  MODIFY `id_banco` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id_banco` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT de la tabla `cliente`
 --
 ALTER TABLE `cliente`
-  MODIFY `id_cliente` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `id_cliente` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT de la tabla `configuracion`
@@ -411,74 +449,41 @@ ALTER TABLE `configuracion`
 -- AUTO_INCREMENT de la tabla `cuenta`
 --
 ALTER TABLE `cuenta`
-  MODIFY `id_cuenta` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `id_cuenta` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT de la tabla `metodo_pago`
 --
 ALTER TABLE `metodo_pago`
-  MODIFY `id_metodo` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+  MODIFY `id_metodo` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
 
 --
 -- AUTO_INCREMENT de la tabla `pagos`
 --
 ALTER TABLE `pagos`
-  MODIFY `id_pago` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `id_pago` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
 
 --
 -- AUTO_INCREMENT de la tabla `pago_nomina`
 --
 ALTER TABLE `pago_nomina`
-  MODIFY `id_nomina` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+  MODIFY `id_nomina` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT de la tabla `pago_servicio`
 --
 ALTER TABLE `pago_servicio`
-  MODIFY `id_pago_servicio` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `id_pago_servicio` int(11) NOT NULL AUTO_INCREMENT;
 
 --
--- AUTO_INCREMENT de la tabla `planes`
+-- AUTO_INCREMENT de la tabla `tasa_cambio`
 --
-ALTER TABLE `planes`
-  MODIFY `id_plan` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
-
---
--- AUTO_INCREMENT de la tabla `rol_usuario`
---
-ALTER TABLE `rol_usuario`
-  MODIFY `id_rol` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+ALTER TABLE `tasa_cambio`
+  MODIFY `id_tasa` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- Restricciones para tablas volcadas
 --
-
---
--- Filtros para la tabla `administrador`
---
-ALTER TABLE `administrador`
-  ADD CONSTRAINT `fk_rol_usuario` FOREIGN KEY (`id_rol`) REFERENCES `rol_usuario` (`id_rol`);
-
---
--- Filtros para la tabla `cuenta`
---
-ALTER TABLE `cuenta`
-  ADD CONSTRAINT `fk_cuenta_banco` FOREIGN KEY (`id_banco`) REFERENCES `banco` (`id_banco`) ON DELETE CASCADE;
-
---
--- Filtros para la tabla `pagos`
---
-ALTER TABLE `pagos`
-  ADD CONSTRAINT `fk_metodo_pago_pagos` FOREIGN KEY (`id_metodo`) REFERENCES `metodo_pago` (`id_metodo`) ON DELETE CASCADE,
-  ADD CONSTRAINT `fk_pago_cuenta` FOREIGN KEY (`id_cuenta`) REFERENCES `cuenta` (`id_cuenta`) ON DELETE CASCADE,
-  ADD CONSTRAINT `fk_pagos_cliente` FOREIGN KEY (`id_cliente`) REFERENCES `cliente` (`id_cliente`) ON DELETE CASCADE;
-
---
--- Filtros para la tabla `pago_nomina`
---
-ALTER TABLE `pago_nomina`
-  ADD CONSTRAINT `fk_metodo_pago` FOREIGN KEY (`id_metodo`) REFERENCES `metodo_pago` (`id_metodo`) ON DELETE CASCADE,
-  ADD CONSTRAINT `fk_nomina_cuenta` FOREIGN KEY (`id_cuenta`) REFERENCES `cuenta` (`id_cuenta`) ON DELETE CASCADE;
 
 --
 -- Filtros para la tabla `pago_servicio`
