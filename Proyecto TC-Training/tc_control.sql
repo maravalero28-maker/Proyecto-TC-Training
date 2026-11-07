@@ -43,9 +43,8 @@ CREATE TABLE `administrador` (
 
 INSERT INTO `administrador` (`id_admin`, `Usuario`, `Contrasenna`, `PreguntaSecreta`, `RespuestaSecreta`, `fecha_creacion`, `id_rol`) VALUES
 (1, 'admin', '$2y$10$eOw7o.pZxKmKODOkwLqUF.YavgNDhhMH97w40qr0QyJADEImRSjii', NULL, NULL, '2026-05-09 00:00:00', 1),
-(2, 'jailymaife@gmail.com', '12345678', NULL, NULL, '2026-05-09 00:00:00', 1),
-(3, 'carlosdrb@gmail.com', '$2y$10$hG4nPiJJze8LwYnhHlUx3OrfJtOjw.FPI4nDOOb6Jc/SIuzqojbbC', NULL, NULL, '2026-05-09 00:00:00', 1),
-(4, 'mara', '$2y$10$rfVGN4Me03zg0riR8Cm31.JRa2SYiDlzfC.AOmvSmNk4AT0G3aXNa', '¿Cuál es el nombre de tu mascota?', '$2y$10$8xrCsZchji0gtHBCqcZymO1vgk7B/Dv/mmZJTfLYU.eJxaHHVtrYy', '2026-10-13 14:40:33', 1);
+(2, 'carlosdrb@gmail.com', '$2y$10$hG4nPiJJze8LwYnhHlUx3OrfJtOjw.FPI4nDOOb6Jc/SIuzqojbbC', NULL, NULL, '2026-05-09 00:00:00', 1),
+(3, 'mara', '$2y$10$rfVGN4Me03zg0riR8Cm31.JRa2SYiDlzfC.AOmvSmNk4AT0G3aXNa', '¿Cuál es el nombre de tu mascota?', '$2y$10$8xrCsZchji0gtHBCqcZymO1vgk7B/Dv/mmZJTfLYU.eJxaHHVtrYy', '2026-10-13 14:40:33', 1);
 
 -- --------------------------------------------------------
 
