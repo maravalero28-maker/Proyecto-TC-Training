@@ -9,13 +9,98 @@ require_once "../configuracion/conecxion.php";
 require_once "../modelo/ModelPago.php";
 require_once "../modelo/Cliente.php";
 require_once "../modelo/Plan.php";
+require_once "../modelo/ModelTasa.php";
 
 $database = new Conexion();
 $db = $database->getConexion();
 $objPago = new ModelPago($db);
+$objTasa = new ModelTasa($db);
 $objCliente = new Cliente($db);
 $objPlan = new Plan($db);
 $planes = $objPlan->obtenerTodos();
+
+// Plan que corresponde al pago: el seleccionado en el formulario o, si no se elige ninguno, el actual del cliente
+function obtenerPlanDelPago($objPago, $planes, $id_cliente, $plan_id) {
+    $buscar = $plan_id;
+    if ($buscar === '' || $buscar === null) {
+        $buscar = '';
+        foreach ($objPago->obtenerClientes(false) as $cli) {
+            if ($cli['id_cliente'] == $id_cliente) {
+                $buscar = $cli['Plan'] ?? '';
+                break;
+            }
+        }
+    }
+    foreach ($planes as $p) {
+        if ((string) $p['id_plan'] === (string) $buscar || strcasecmp($p['nombre'], (string) $buscar) === 0) {
+            return $p;
+        }
+    }
+    return null;
+}
+
+// Convierte el monto a dólares según la moneda de la cuenta receptora (sin cuenta = USD).
+// Para cuentas en BS exige la tasa registrada exactamente para la fecha del pago.
+function convertirMontoPago($objTasa, $cuentasList, $id_cuenta, $monto, $fecha) {
+    $moneda = 'USD';
+    if (!empty($id_cuenta)) {
+        foreach ($cuentasList as $c) {
+            if ($c['id_cuenta'] == $id_cuenta) {
+                $moneda = strtoupper(trim($c['tipo_moneda']));
+                break;
+            }
+        }
+    }
+
+    $conv = [
+        'moneda' => ($moneda === 'BS') ? 'BS' : 'USD',
+        'tasa' => null,
+        'fecha' => $fecha,
+        'monto_usd' => round($monto, 2),
+        'usd_exacto' => $monto,
+        'error' => ''
+    ];
+    if ($moneda !== 'BS') {
+        return $conv;
+    }
+
+    $tasa = $objTasa->obtenerExacta($fecha);
+    if (!$tasa) {
+        $conv['error'] = 'No hay una tasa registrada para el ' . date('d/m/Y', strtotime($fecha)) . '. Regístrala en Fondos > Tasa del Día para poder registrar pagos en bolívares.';
+        return $conv;
+    }
+
+    $conv['tasa'] = $tasa;
+    $conv['usd_exacto'] = $monto / $tasa;
+    $conv['monto_usd'] = round($monto / $tasa, 2);
+    return $conv;
+}
+
+// Verifica que el pago equivalga al precio del plan.
+// Devuelve ['error' => texto o vacío, 'monto_usd' => equivalente en dólares a guardar]
+function validarMontoContraPlan($objPago, $planes, $id_cliente, $plan_id, $conv) {
+    $plan = obtenerPlanDelPago($objPago, $planes, $id_cliente, $plan_id);
+    if (!$plan) {
+        return ['error' => 'El cliente no tiene un plan válido asignado. Selecciona un plan para registrar el pago.', 'monto_usd' => $conv['monto_usd']];
+    }
+
+    $precio = floatval($plan['precio']);
+    // En bolívares se tolera un centavo de dólar por el redondeo de la tasa
+    $tolerancia = ($conv['moneda'] === 'BS') ? 0.01 : 0.004;
+
+    if (abs($conv['usd_exacto'] - $precio) > $tolerancia) {
+        if ($conv['moneda'] === 'BS') {
+            $texto = 'El monto debe equivaler al precio del plan "' . $plan['nombre'] . '": $' . number_format($precio, 2, ',', '.')
+                   . '. Con la tasa del ' . date('d/m/Y', strtotime($conv['fecha'])) . ' (Bs ' . number_format($conv['tasa'], 2, ',', '.') . ' por $) son Bs '
+                   . number_format($precio * $conv['tasa'], 2, ',', '.') . '.';
+        } else {
+            $texto = 'El monto debe ser igual al precio del plan "' . $plan['nombre'] . '": $' . number_format($precio, 2, ',', '.') . '.';
+        }
+        return ['error' => $texto, 'monto_usd' => $conv['monto_usd']];
+    }
+
+    return ['error' => '', 'monto_usd' => round($precio, 2)];
+}
 
 // Obtener métodos de pago y cuentas desde la BD
 $metodosPagoList = [];
@@ -68,7 +153,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['btnpago'])) {
         exit();
     }
 
-    $resultado = $objPago->registrar($id_cliente, floatval($monto), $fecha, $id_metodo, $id_cuenta);
+    $conv = convertirMontoPago($objTasa, $cuentasList, $id_cuenta, floatval($monto), $fecha);
+    $errorPlan = $conv['error'];
+    $montoUsd = $conv['monto_usd'];
+    if ($errorPlan === '') {
+        $validacion = validarMontoContraPlan($objPago, $planes, $id_cliente, $plan_id, $conv);
+        $errorPlan = $validacion['error'];
+        $montoUsd = $validacion['monto_usd'];
+    }
+    if ($errorPlan !== '') {
+        $mensaje = '<article class="alert alert-warning">' . htmlspecialchars($errorPlan) . '</article>';
+        $clientes = $objPago->obtenerClientes();
+        $id_clienteValor = $id_cliente;
+        $plan_idValor = $plan_id;
+        $idMetodoValor = $id_metodo;
+        $idCuentaValor = $id_cuenta;
+        $montoValor = htmlspecialchars($rawMonto);
+        $fechaValor = htmlspecialchars($fecha);
+        include "../vista/registropago.php";
+        exit();
+    }
+
+    $resultado = $objPago->registrar($id_cliente, floatval($monto), $fecha, $id_metodo, $id_cuenta, $conv['moneda'], $conv['tasa'], $montoUsd);
 
     if ($resultado === 'success') {
         if (!empty($plan_id) && is_numeric($plan_id)) {
@@ -117,7 +223,47 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['btnactualizarpago']))
         exit();
     }
 
-    $actualizado = $objPago->actualizar($id_pago, $id_cliente, floatval($monto), $fecha, $id_metodo, $id_cuenta);
+    $pagoActual = $objPago->obtenerPorId($id_pago);
+    $moneda = $pagoActual['moneda'] ?? null;
+    $tasa = $pagoActual['tasa'] ?? null;
+    $montoUsd = $pagoActual['monto_usd'] ?? null;
+
+    // Solo se revalida y reconvierte si cambia algo que afecta el valor del pago
+    $cambioFinanciero = !$pagoActual
+        || round(floatval($pagoActual['Monto']), 2) != round(floatval($monto), 2)
+        || $pagoActual['Fecha'] !== $fecha
+        || (int) ($pagoActual['id_cuenta'] ?? 0) !== (int) ($id_cuenta ?? 0);
+    $debeValidar = $cambioFinanciero
+        || (int) $pagoActual['id_cliente'] !== (int) $id_cliente
+        || $plan_id !== '';
+
+    if ($debeValidar) {
+        $conv = convertirMontoPago($objTasa, $cuentasList, $id_cuenta, floatval($monto), $fecha);
+        $errorPlan = $conv['error'];
+        $montoUsd = $conv['monto_usd'];
+        if ($errorPlan === '') {
+            $validacion = validarMontoContraPlan($objPago, $planes, $id_cliente, $plan_id, $conv);
+            $errorPlan = $validacion['error'];
+            $montoUsd = $validacion['monto_usd'];
+        }
+        if ($errorPlan !== '') {
+            $mensaje = '<article class="alert alert-warning">' . htmlspecialchars($errorPlan) . '</article>';
+            $clientes = $objPago->obtenerClientes(false);
+            $id_pagoValor = $id_pago;
+            $id_clienteValor = $id_cliente;
+            $plan_idValor = $plan_id;
+            $montoValor = $rawMonto;
+            $fechaValor = $fecha;
+            $idMetodoValor = $id_metodo;
+            $idCuentaValor = $id_cuenta;
+            include "../vista/editar_pago.php";
+            exit();
+        }
+        $moneda = $conv['moneda'];
+        $tasa = $conv['tasa'];
+    }
+
+    $actualizado = $objPago->actualizar($id_pago, $id_cliente, floatval($monto), $fecha, $id_metodo, $id_cuenta, $moneda, $tasa, $montoUsd);
     if ($actualizado) {
         if (!empty($plan_id) && is_numeric($plan_id)) {
             $objCliente->actualizarPlan($id_cliente, intval($plan_id));

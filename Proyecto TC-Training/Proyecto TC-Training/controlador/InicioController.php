@@ -8,9 +8,11 @@ if (!isset($_SESSION['admin_id'])) {
 require_once "../configuracion/conecxion.php";
 require_once "../modelo/Cliente.php";
 require_once "../modelo/ModelPago.php";
+require_once "../modelo/ModelTasa.php";
 
 $conexion = new Conexion();
 $db = $conexion->getConexion();
+ModelTasa::asegurarEsquema($db);
 
 $config = $db->query("SELECT * FROM configuracion WHERE id = 1")->fetch(PDO::FETCH_ASSOC);
 if (!$config) {
@@ -59,12 +61,12 @@ switch ($ingresosPeriodo) {
         break;
 }
 
-$stmtIngresos = $db->prepare("SELECT COALESCE(SUM(Monto), 0) AS total FROM pagos WHERE Fecha BETWEEN ? AND ?");
+$stmtIngresos = $db->prepare("SELECT COALESCE(SUM(COALESCE(monto_usd, Monto)), 0) AS total FROM pagos WHERE Fecha BETWEEN ? AND ?");
 $stmtIngresos->execute([$inicioPeriodo->format('Y-m-d'), $finPeriodo->format('Y-m-d')]);
 $ingresosEstimados = (float) $stmtIngresos->fetchColumn();
 
 
-$stmtPagos = $db->prepare("SELECT p.id_pago, p.id_cliente, p.Monto, p.Fecha, p.MetodoPago, CONCAT(c.Nombre, ' ', c.apellido) AS NombreCliente, c.Plan, c.Solvencia FROM pagos p INNER JOIN cliente c ON p.id_cliente = c.id_cliente WHERE p.Fecha BETWEEN ? AND ? ORDER BY p.Fecha ASC");
+$stmtPagos = $db->prepare("SELECT p.id_pago, p.id_cliente, COALESCE(p.monto_usd, p.Monto) AS Monto, p.Fecha, m.nombre AS MetodoPago, CONCAT(c.Nombre, ' ', c.apellido) AS NombreCliente, c.Plan, c.Solvencia FROM pagos p INNER JOIN cliente c ON p.id_cliente = c.id_cliente LEFT JOIN metodo_pago m ON p.id_metodo = m.id_metodo WHERE p.Fecha BETWEEN ? AND ? ORDER BY p.Fecha ASC");
 $stmtPagos->execute([$inicioPeriodo->format('Y-m-d'), $finPeriodo->format('Y-m-d')]);
 $pagosPeriodo = $stmtPagos->fetchAll(PDO::FETCH_ASSOC);
 
