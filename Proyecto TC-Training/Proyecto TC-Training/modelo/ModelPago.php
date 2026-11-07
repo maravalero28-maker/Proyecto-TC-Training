@@ -1,4 +1,6 @@
 <?php
+require_once __DIR__ . '/ModelTasa.php';
+
 class ModelPago {
     private $db;
     private $lastError = null;
@@ -6,6 +8,7 @@ class ModelPago {
     public function __construct($db_conn) {
         $this->db = $db_conn;
         $this->asegurarTablaPagos();
+        ModelTasa::asegurarEsquema($this->db);
     }
 
     private function asegurarTablaPagos() {
@@ -27,7 +30,7 @@ class ModelPago {
         }
     }
 
-    public function registrar($id_cliente, $monto, $fecha, $id_metodo = null, $id_cuenta = null) {
+    public function registrar($id_cliente, $monto, $fecha, $id_metodo = null, $id_cuenta = null, $moneda = null, $tasa = null, $monto_usd = null) {
         if (empty($id_cliente) || empty($monto) || empty($fecha)) {
             return "warning";
         }
@@ -36,11 +39,11 @@ class ModelPago {
         $id_metodo = !empty($id_metodo) ? intval($id_metodo) : null;
         $id_cuenta = !empty($id_cuenta) ? intval($id_cuenta) : null;
 
-        $sql = "INSERT INTO pagos (id_cliente, Monto, Fecha, id_metodo, id_cuenta) VALUES (?, ?, ?, ?, ?)";
+        $sql = "INSERT INTO pagos (id_cliente, Monto, Fecha, id_metodo, id_cuenta, moneda, tasa, monto_usd) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
 
         try {
             $stmt = $this->db->prepare($sql);
-            $stmt->execute([$id_cliente, $monto, $fecha, $id_metodo, $id_cuenta]);
+            $stmt->execute([$id_cliente, $monto, $fecha, $id_metodo, $id_cuenta, $moneda, $tasa, $monto_usd]);
             return "success";
         } catch (PDOException $e) {
             $this->lastError = $e->getMessage();
@@ -54,6 +57,7 @@ class ModelPago {
 
     public function obtenerTodos($filtro = 'todos', $year = null, $options = []) {
         $sql = "SELECT p.id_pago, p.id_cliente, p.Monto, p.Fecha, p.id_metodo, p.id_cuenta,
+                       p.moneda, p.tasa, p.monto_usd,
                        m.nombre AS nombre_metodo,
                        CONCAT(c.Nombre, ' ', c.apellido) AS NombreCliente,
                        c.Plan, c.Solvencia, c.estatus
@@ -117,6 +121,7 @@ class ModelPago {
 
     public function obtenerPorId($id) {
         $sql = "SELECT p.id_pago, p.id_cliente, p.Monto, p.Fecha, p.id_metodo, p.id_cuenta,
+                       p.moneda, p.tasa, p.monto_usd,
                        CONCAT(c.Nombre, ' ', c.apellido) AS NombreCliente
                 FROM pagos p
                 INNER JOIN cliente c ON p.id_cliente = c.id_cliente
@@ -130,14 +135,14 @@ class ModelPago {
         }
     }
 
-    public function actualizar($id_pago, $id_cliente, $monto, $fecha, $id_metodo = null, $id_cuenta = null) {
+    public function actualizar($id_pago, $id_cliente, $monto, $fecha, $id_metodo = null, $id_cuenta = null, $moneda = null, $tasa = null, $monto_usd = null) {
         $id_metodo = !empty($id_metodo) ? intval($id_metodo) : null;
         $id_cuenta = !empty($id_cuenta) ? intval($id_cuenta) : null;
 
-        $sql = "UPDATE pagos SET id_cliente = ?, Monto = ?, Fecha = ?, id_metodo = ?, id_cuenta = ? WHERE id_pago = ?";
+        $sql = "UPDATE pagos SET id_cliente = ?, Monto = ?, Fecha = ?, id_metodo = ?, id_cuenta = ?, moneda = ?, tasa = ?, monto_usd = ? WHERE id_pago = ?";
         try {
             $stmt = $this->db->prepare($sql);
-            return $stmt->execute([$id_cliente, $monto, $fecha, $id_metodo, $id_cuenta, $id_pago]);
+            return $stmt->execute([$id_cliente, $monto, $fecha, $id_metodo, $id_cuenta, $moneda, $tasa, $monto_usd, $id_pago]);
         } catch (PDOException $e) {
             $this->lastError = $e->getMessage();
             return false;

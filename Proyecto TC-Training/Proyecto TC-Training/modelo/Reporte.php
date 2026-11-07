@@ -5,6 +5,8 @@ class Reporte {
     public function __construct() {
         require_once(__DIR__ . '/../configuracion/conecxion.php');
         $this->db = (new Conexion())->getConexion();
+        require_once(__DIR__ . '/ModelTasa.php');
+        ModelTasa::asegurarEsquema($this->db);
     }
 
     public function obtenerPagos($origen, $fechaInicio = '', $fechaFin = '', $metodoPago = '', $banco = '') {
@@ -12,7 +14,7 @@ class Reporte {
         $params = [];
 
         if ($origen === 'clientes') {
-            $sql = "SELECT p.id_pago, c.id_cliente AS cedula, c.Nombre AS nombre, p.Monto AS monto,
+            $sql = "SELECT p.id_pago, c.id_cliente AS cedula, c.Nombre AS nombre, COALESCE(p.monto_usd, p.Monto) AS monto,
                             mp.nombre AS metodo_pago, b.nombre AS banco_receptor, p.Fecha AS fecha_pago
                     FROM pagos p 
                     JOIN cliente c ON p.id_cliente = c.id_cliente
