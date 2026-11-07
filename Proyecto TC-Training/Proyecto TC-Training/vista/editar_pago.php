@@ -23,6 +23,9 @@ if (!isset($pago) && !isset($id_pagoValor)) {
                 <h1 class="font-lexend">Editar Pago</h1>
                 <p>Modifica los datos del pago.</p>
             </header>
+            <?php if (!empty($mensaje)): ?>
+                <section class="alert-container"><?php echo $mensaje; ?></section>
+            <?php endif; ?>
 
             <form action="../controlador/pagoscontrolador.php" method="POST" novalidate>
                 <input type="hidden" name="id_pago" value="<?php echo htmlspecialchars($id_pagoValor); ?>">
@@ -58,6 +61,7 @@ if (!isset($pago) && !isset($id_pagoValor)) {
                     <label for="monto" class="form-label">Monto</label>
                     <input type="number" step="0.01" min="0.01" id="monto" name="monto" class="form-control" 
                           value="<?php echo htmlspecialchars($montoValor); ?>" required>
+                    <small class="text-muted">Escribe el monto en la moneda de la cuenta receptora. Si es en BS, se convierte a dólares con la tasa del día.</small>
                     <p class="error-msg">El monto es obligatorio.</p>
                 </fieldset>
 

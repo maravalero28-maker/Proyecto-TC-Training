@@ -191,6 +191,20 @@ if (!isset($pagos) || !isset($filtro)) {
         return new Intl.NumberFormat('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Number(value) || 0);
     }
 
+    // Equivalente en dólares del pago (los pagos antiguos sin conversión se toman tal cual)
+    function montoUSD(p) {
+        const usd = (p.monto_usd !== null && p.monto_usd !== undefined && p.monto_usd !== '') ? p.monto_usd : p.Monto;
+        return Number(usd) || 0;
+    }
+
+    // Monto tal como se pagó: en BS se muestra también su equivalente en dólares
+    function formatMontoPago(p) {
+        if (p.moneda === 'BS') {
+            return `Bs ${formatAmount(p.Monto)} <small>(&asymp; $${formatAmount(montoUSD(p))})</small>`;
+        }
+        return `$${formatAmount(p.Monto)}`;
+    }
+
     function escapeHtml(text) {
         return String(text || '').replace(/[&<>\"]+/g, function(match) {
             const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' };
@@ -207,7 +221,7 @@ if (!isset($pagos) || !isset($filtro)) {
         paymentsTableBody.innerHTML = pagos.map(p => `
             <tr>
                 <td>${escapeHtml((p.NombreCliente || '').replace(/\s+/g, ' '))}</td>
-                <td>$${formatAmount(p.Monto)}</td>
+                <td>${formatMontoPago(p)}</td>
                 <td>${escapeHtml(p.Fecha || '')}</td>
                 <td>${escapeHtml(p.nombre_metodo || p.MetodoPago || '')}</td>
                 <td>
@@ -290,7 +304,7 @@ if (!isset($pagos) || !isset($filtro)) {
         let totalAmount = 0;
 
         pagos.forEach(p => {
-            const amount = Number(p.Monto) || 0;
+            const amount = montoUSD(p);
             const method = p.MetodoPago || 'Otros';
             totalsByMethod[method] = (totalsByMethod[method] || 0) + amount;
             totalAmount += amount;
@@ -502,10 +516,10 @@ if (!isset($pagos) || !isset($filtro)) {
         if (!pagos || !pagos.length) return;
         const summary = summarizePagos(pagos);
         const filterSummary = getFilterSummary();
-        const rows = [['Cliente', 'Monto', 'Fecha', 'Método', 'Plan', 'Solvencia']];
+        const rows = [['Cliente', 'Monto (USD)', 'Fecha', 'Método', 'Plan', 'Solvencia']];
         pagos.forEach(p => rows.push([
             p.NombreCliente || '',
-            parseFloat(p.Monto || 0),
+            montoUSD(p),
             p.Fecha || '',
             p.MetodoPago || '',
             p.Plan || '',
@@ -536,7 +550,7 @@ if (!isset($pagos) || !isset($filtro)) {
         const dailyTotals = {};
         pagos.forEach(p => {
             if (!p.Fecha) return;
-            dailyTotals[p.Fecha] = (dailyTotals[p.Fecha] || 0) + Number(p.Monto || 0);
+            dailyTotals[p.Fecha] = (dailyTotals[p.Fecha] || 0) + montoUSD(p);
         });
         const dailyRows = [['Fecha', 'Ingresos']];
         Object.keys(dailyTotals).sort((a, b) => new Date(a) - new Date(b)).forEach(fecha => {
@@ -580,7 +594,7 @@ if (!isset($pagos) || !isset($filtro)) {
         doc.addPage();
         const body = pagos.map(p => [
             p.NombreCliente || '',
-            `$${formatAmount(p.Monto)}`,
+            `$${formatAmount(montoUSD(p))}`,
             p.Fecha || '',
             p.MetodoPago || '',
             p.Plan || '',
@@ -588,7 +602,7 @@ if (!isset($pagos) || !isset($filtro)) {
         ]);
         doc.autoTable({
             startY: 14,
-            head: [['Cliente', 'Monto', 'Fecha', 'Método', 'Plan', 'Solvencia']],
+            head: [['Cliente', 'Monto (USD)', 'Fecha', 'Método', 'Plan', 'Solvencia']],
             body,
             styles: { fontSize: 8 },
             headStyles: { fillColor: [59, 130, 246] },

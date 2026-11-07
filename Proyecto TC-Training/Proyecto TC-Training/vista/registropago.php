@@ -59,6 +59,7 @@
                         <input type="number" step="0.01" min="0.01" id="monto" name="monto" class="form-control flex-1" placeholder="Monto" 
                                value="<?php echo $montoValor ?? ''; ?>" required>
                     </section>
+                    <small class="text-muted">Escribe el monto en la moneda de la cuenta receptora. Si es en BS, se convierte a dólares con la tasa del día.</small>
                     <p class="error-msg">El monto es obligatorio.</p>
                 </fieldset>
 

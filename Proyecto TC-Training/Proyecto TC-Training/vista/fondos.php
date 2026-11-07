@@ -6,6 +6,9 @@ if (!isset($fondos)) {
 // Asegurar que sean arrays para evitar cualquier warning o error
 $fondos = is_array($fondos) ?$fondos : [];
 $transacciones = is_array($transacciones) ? $transacciones : [];$idCuentaFiltro = isset($idCuentaFiltro) ?$idCuentaFiltro : 'todas';
+$tasaVigente = $tasaVigente ?? null;
+$tasaHoyRegistrada = $tasaHoyRegistrada ?? false;
+$totalesUSD = (isset($totalesUSD) && is_array($totalesUSD)) ? $totalesUSD : [];
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -50,6 +53,18 @@ $transacciones = is_array($transacciones) ? $transacciones : [];$idCuentaFiltro 
                 <section>
                     <h1 class="page-title">Cuentas Bancarias y Fondos</h1>
                     <p class="page-subtitle">Monitoreo de saldos y flujo de dinero por fondo (Zelle, Binance, Banesco, etc.)</p>
+                    <p class="page-subtitle">
+                        <?php if ($tasaVigente): ?>
+                            Tasa del día: <strong>Bs <?php echo number_format($tasaVigente['tasa'], 2, ',', '.'); ?></strong> por $ (<?php echo date('d/m/Y', strtotime($tasaVigente['fecha'])); ?>)<?php echo $tasaHoyRegistrada ? '' : ' - falta registrar la tasa de hoy'; ?>
+                        <?php else: ?>
+                            Aún no hay una tasa registrada.
+                        <?php endif; ?>
+                    </p>
+                </section>
+                <section class="header-actions">
+                    <a href="../controlador/FondoController.php?action=nueva_tasa" class="btn btn-outline">Tasa del Día</a>
+                    <a href="../controlador/FondoController.php?action=nuevo_metodo" class="btn btn-outline">+ Nuevo Método de Pago</a>
+                    <a href="../controlador/FondoController.php?action=nueva_cuenta" class="btn btn-primary">+ Nueva Cuenta</a>
                 </section>
             </header>
 
@@ -59,23 +74,24 @@ $transacciones = is_array($transacciones) ? $transacciones : [];$idCuentaFiltro 
 
             <!-- Tarjetas de Fondos Dinámicas con foreach seguro -->
             <?php 
-                $saldoGeneral = 0;
-                if (!empty($fondos) && is_array($fondos)) {
-                    foreach ($fondos as$f) {
-                        if (is_array($f) && isset($f['saldo'])) {
-                            $saldoGeneral += floatval($f['saldo']);
-                        }
-                    }
-                }
+                // Saldo general siempre en dólares (cada movimiento convertido con su tasa)
+                $totalesGenerales = $totalesUSD['general'] ?? ['ingresos' => 0, 'egresos' => 0, 'saldo' => 0];
+                $saldoGeneral = $totalesGenerales['saldo'];
+                $ingresosGeneral = $totalesGenerales['ingresos'];
+                $egresosGeneral = $totalesGenerales['egresos'];
+                // Movimientos registrados sin cuenta (efectivo, en dólares)
+                $fondoEfectivo = (isset($fondoEfectivo) && is_array($fondoEfectivo)) ? $fondoEfectivo : ['ingresos' => 0, 'egresos' => 0, 'saldo' => 0];
+                $hayEfectivo = (round(floatval($fondoEfectivo['ingresos']), 2) != 0 || round(floatval($fondoEfectivo['egresos']), 2) != 0);
                 $isAllActive = ($idCuentaFiltro === 'todas');
             ?>
             <section class="cards-grid-cuentas" id="cuentasCardsContainer">
                 <div class="account-card <?php echo $isAllActive ? 'active' : ''; ?>" onclick="filtrarPorCuenta('todas', this)">
-                    <span class="account-card-sub">Todos los Fondos</span>
+                    <span class="account-card-sub">Todos los Fondos (en USD)</span>
                     <strong class="account-card-title">Saldo General</strong>
                     <span class="account-card-value">
                         $<?php echo number_format($saldoGeneral, 2); ?>
                     </span>
+                    <span class="account-card-sub">Ingresos: +$<?php echo number_format($ingresosGeneral, 2); ?> | Egresos: -$<?php echo number_format($egresosGeneral, 2); ?></span>
                 </div>
                 <?php foreach ($fondos as$f): ?>
                     <?php $isActiveCard = ($idCuentaFiltro ==$f['id_cuenta']); ?>
@@ -85,8 +101,22 @@ $transacciones = is_array($transacciones) ? $transacciones : [];$idCuentaFiltro 
                         <span class="account-card-value">
                             <?php echo htmlspecialchars($f['tipo_moneda'] ?? 'USD') . ' ' . number_format($f['saldo'] ?? 0, 2); ?>
                         </span>
+                        <?php if (strtoupper($f['tipo_moneda'] ?? '') === 'BS'): ?>
+                            <span class="account-card-sub">&asymp; $<?php echo number_format($f['saldo_usd'] ?? 0, 2); ?> USD</span>
+                        <?php endif; ?>
+                        <span class="account-card-sub">Ingresos: +<?php echo number_format($f['ingresos'] ?? 0, 2); ?> | Egresos: -<?php echo number_format($f['egresos'] ?? 0, 2); ?></span>
                     </div>
                 <?php endforeach; ?>
+                <?php if ($hayEfectivo): ?>
+                    <div class="account-card <?php echo ($idCuentaFiltro === 'sin_cuenta') ? 'active' : ''; ?>" onclick="filtrarPorCuenta('sin_cuenta', this)">
+                        <span class="account-card-sub">Sin cuenta asignada</span>
+                        <strong class="account-card-title">Efectivo / Caja</strong>
+                        <span class="account-card-value">
+                            $<?php echo number_format($fondoEfectivo['saldo'], 2); ?>
+                        </span>
+                        <span class="account-card-sub">Ingresos: +$<?php echo number_format($fondoEfectivo['ingresos'], 2); ?> | Egresos: -$<?php echo number_format($fondoEfectivo['egresos'], 2); ?></span>
+                    </div>
+                <?php endif; ?>
             </section>
 
             <!-- Tabla de Transacciones -->
@@ -124,7 +154,11 @@ $transacciones = is_array($transacciones) ? $transacciones : [];$idCuentaFiltro 
                                             <td><?php echo htmlspecialchars(($t['banco_nombre'] ?? 'General') . ' - ' . ($t['num_cuenta'] ?? 'Caja/Efectivo')); ?></td>
                                             <td><?php echo htmlspecialchars($t['nombre_metodo'] ?? 'Efectivo'); ?></td>
                                             <td class="<?php echo $esIngreso ? 'text-success' : 'text-danger'; ?>">
-                                                <strong><?php echo ($esIngreso ? '+ $' : '- $') . number_format($t['monto'] ?? 0, 2); ?></strong>
+                                                <?php $esBs = (strtoupper($t['tipo_moneda'] ?? 'USD') === 'BS'); ?>
+                                                <strong><?php echo ($esIngreso ? '+ ' : '- ') . ($esBs ? 'Bs ' : '$') . number_format($t['monto'] ?? 0, 2); ?></strong>
+                                                <?php if ($esBs && isset($t['monto_usd']) && $t['monto_usd'] !== ''): ?>
+                                                    <br><small>&asymp; $<?php echo number_format($t['monto_usd'], 2); ?></small>
+                                                <?php endif; ?>
                                             </td>
                                         </tr>
                                     <?php endforeach; ?>
@@ -157,7 +191,9 @@ $transacciones = is_array($transacciones) ? $transacciones : [];$idCuentaFiltro 
                     const esIngreso = t.tipo_movimiento === 'ingreso';
                     const badgeClass = esIngreso ? 'badge-ingreso' : 'badge-egreso';
                     const textClass = esIngreso ? 'text-success' : 'text-danger';
-                    const sign = esIngreso ? '+ $' : '-$';
+                    const esBs = (t.tipo_moneda || 'USD').toUpperCase() === 'BS';
+                    const sign = (esIngreso ? '+ ' : '- ') + (esBs ? 'Bs ' : '$');
+                    const equivalente = (esBs && t.monto_usd !== null && t.monto_usd !== undefined && t.monto_usd !== '') ? `<br><small>&asymp; $${Number(t.monto_usd).toFixed(2)}</small>` : '';
                     const banco = (t.banco_nombre || 'General') + ' - ' + (t.num_cuenta || 'Caja/Efectivo');
 
                     return `<tr>
@@ -166,7 +202,7 @@ $transacciones = is_array($transacciones) ? $transacciones : [];$idCuentaFiltro 
                         <td><span class="${badgeClass}">${esIngreso ? '+ Ingreso' : '- Egreso'}</span></td>
                         <td>${banco}</td>
                         <td>${t.nombre_metodo || 'Efectivo'}</td>
-                        <td class="${textClass}"><strong>${sign}${Number(t.monto || 0).toFixed(2)}</strong></td>
+                        <td class="${textClass}"><strong>${sign}${Number(t.monto || 0).toFixed(2)}</strong>${equivalente}</td>
                     </tr>`;
                 }).join('');
             })
