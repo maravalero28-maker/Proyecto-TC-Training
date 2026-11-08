@@ -77,6 +77,7 @@ $totalesUSD = (isset($totalesUSD) && is_array($totalesUSD)) ? $totalesUSD : [];
                 // Saldo general siempre en dólares (cada movimiento convertido con su tasa)
                 $totalesGenerales = $totalesUSD['general'] ?? ['ingresos' => 0, 'egresos' => 0, 'saldo' => 0];
                 $saldoGeneral = $totalesGenerales['saldo'];
+                $inicialGeneral = $totalesGenerales['inicial'] ?? 0;
                 $ingresosGeneral = $totalesGenerales['ingresos'];
                 $egresosGeneral = $totalesGenerales['egresos'];
                 // Movimientos registrados sin cuenta (efectivo, en dólares)
@@ -91,6 +92,9 @@ $totalesUSD = (isset($totalesUSD) && is_array($totalesUSD)) ? $totalesUSD : [];
                     <span class="account-card-value">
                         $<?php echo number_format($saldoGeneral, 2); ?>
                     </span>
+                    <?php if (round($inicialGeneral, 2) != 0): ?>
+                        <span class="account-card-sub">Saldo inicial: $<?php echo number_format($inicialGeneral, 2); ?></span>
+                    <?php endif; ?>
                     <span class="account-card-sub">Ingresos: +$<?php echo number_format($ingresosGeneral, 2); ?> | Egresos: -$<?php echo number_format($egresosGeneral, 2); ?></span>
                 </div>
                 <?php foreach ($fondos as$f): ?>
@@ -101,6 +105,9 @@ $totalesUSD = (isset($totalesUSD) && is_array($totalesUSD)) ? $totalesUSD : [];
                         <span class="account-card-value">
                             <?php echo htmlspecialchars($f['tipo_moneda'] ?? 'USD') . ' ' . number_format($f['saldo'] ?? 0, 2); ?>
                         </span>
+                        <?php if (floatval($f['saldo_inicial'] ?? 0) != 0): ?>
+                            <span class="account-card-sub">Saldo inicial: <?php echo number_format($f['saldo_inicial'], 2); ?></span>
+                        <?php endif; ?>
                         <?php if (strtoupper($f['tipo_moneda'] ?? '') === 'BS'): ?>
                             <span class="account-card-sub">&asymp; $<?php echo number_format($f['saldo_usd'] ?? 0, 2); ?> USD</span>
                         <?php endif; ?>

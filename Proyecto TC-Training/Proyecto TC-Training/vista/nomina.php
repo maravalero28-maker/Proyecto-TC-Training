@@ -124,6 +124,7 @@ $safeFilters = isset($filters) ? $filters : array();
                                     <th>Monto</th>
                                     <th>Fecha</th>
                                     <th>Método</th>
+                                    <th>Cuenta</th>
                                     <th>Estado</th>
                                     <th>Acciones</th>
                                 </tr>
@@ -177,6 +178,26 @@ $safeFilters = isset($filters) ? $filters : array();
         return new Intl.NumberFormat('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Number(value) || 0);
     }
 
+    // Equivalente en dólares del pago (los pagos antiguos sin conversión se toman tal cual)
+    function montoUSD(p) {
+        var usd = (p.monto_usd !== null && p.monto_usd !== undefined && p.monto_usd !== '') ? p.monto_usd : p.monto;
+        return Number(usd) || 0;
+    }
+
+    // Monto tal como se pagó: en BS se muestra también su equivalente en dólares
+    function formatMontoPago(p) {
+        if (p.moneda === 'BS') {
+            return 'Bs ' + formatAmount(p.monto) + ' <small>(&asymp; $' + formatAmount(montoUSD(p)) + ')</small>';
+        }
+        return '$' + formatAmount(p.monto);
+    }
+
+    // Cuenta de la que salió el dinero
+    function formatCuenta(p) {
+        if (!p.num_cuenta) return 'Sin cuenta';
+        return (p.banco_nombre ? p.banco_nombre + ' - ' : '') + p.num_cuenta + (p.moneda_cuenta ? ' (' + p.moneda_cuenta + ')' : '');
+    }
+
     function escapeHtml(text) {
         return String(text || '').replace(/[&<>\"]+/g, function(match) {
             var map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' };
@@ -187,7 +208,7 @@ $safeFilters = isset($filters) ? $filters : array();
 function renderPaymentsTable(pagos) {
         if (!paymentsTableBody) return;
         if (!pagos || pagos.length === 0) {
-        paymentsTableBody.innerHTML = '<tr><td colspan="7" class="empty-table-msg">No hay pagos de nómina registrados.</td></tr>';
+        paymentsTableBody.innerHTML = '<tr><td colspan="8" class="empty-table-msg">No hay pagos de nómina registrados.</td></tr>';
             return;
         }
 
@@ -199,13 +220,15 @@ function renderPaymentsTable(pagos) {
             var fecha = p.fecha_pago || p.Fecha_Pago || '';
             var metodo = p.nombre_metodo || p.metodo_pago || 'Efectivo';
             var idNomina = p.id_nomina || p.ID_Nomina || '';
+            var cuenta = formatCuenta(p);
 
             return '<tr>' +
                 '<td>' + escapeHtml(entrenador) + '</td>' +
                 '<td>' + escapeHtml(concepto) + '</td>' +
-                '<td>$' + formatAmount(monto) + '</td>' +
+                '<td>' + formatMontoPago(p) + '</td>' +
                 '<td>' + escapeHtml(fecha) + '</td>' +
                 '<td>' + escapeHtml(metodo) + '</td>' +
+                '<td>' + escapeHtml(cuenta) + '</td>' +
                 '<td><span class="badge ' + (Number(p.anulado) === 1 ? 'badge-inactive' : 'badge-active') + '">' + (Number(p.anulado) === 1 ? 'Inhabilitado' : 'Habilitado') + '</span></td>' +
                 '<td>' +
                     '<section class="transactions-actions" style="display:flex; gap:10px;">' +
@@ -265,7 +288,7 @@ function renderPaymentsTable(pagos) {
         var totalsByMethod = {};
         var totalAmount = 0;
         pagos.forEach(function(p) {
-            var amount = Number(p.monto) || 0;
+            var amount = montoUSD(p);
             var method = p.metodo_pago || 'Efectivo';
             totalsByMethod[method] = (totalsByMethod[method] || 0) + amount;
             totalAmount += amount;
@@ -389,8 +412,8 @@ function renderPaymentsTable(pagos) {
     if (exportExcelBtn) {
         exportExcelBtn.addEventListener('click', function() {
             var pagos = getFilteredPagos(currentReport).filter(function(p) { return Number(p.anulado) !== 1; });
-            var rows = [['Entrenador', 'Concepto', 'Monto', 'Fecha', 'Método']];
-            pagos.forEach(function(p) { rows.push([p.NombreEntrenador, parseFloat(p.monto), p.fecha_pago, p.metodo_pago]); });
+            var rows = [['Entrenador', 'Concepto', 'Monto (USD)', 'Fecha', 'Método', 'Cuenta']];
+            pagos.forEach(function(p) { rows.push([p.NombreEntrenador, p.concepto, montoUSD(p), p.fecha_pago, p.nombre_metodo || p.metodo_pago, formatCuenta(p)]); });
             var wb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rows), 'Nomina');
             XLSX.writeFile(wb, 'reporte-nomina.xlsx');
@@ -403,8 +426,8 @@ function renderPaymentsTable(pagos) {
             var jsPDF = window.jspdf.jsPDF;
             var doc = new jsPDF();
             doc.text('Reporte de Nómina', 14, 16);
-            var body = pagos.map(function(p) { return [p.NombreEntrenador, p.concepto, '$' + formatAmount(p.monto), p.fecha_pago, p.metodo_pago]; });
-            doc.autoTable({ startY: 24, head: [['Entrenador', 'Concepto', 'Monto', 'Fecha', 'Método']], body: body });
+            var body = pagos.map(function(p) { return [p.NombreEntrenador, p.concepto, '$' + formatAmount(montoUSD(p)), p.fecha_pago, p.nombre_metodo || p.metodo_pago, formatCuenta(p)]; });
+            doc.autoTable({ startY: 24, head: [['Entrenador', 'Concepto', 'Monto (USD)', 'Fecha', 'Método', 'Cuenta']], body: body });
             doc.save('reporte-nomina.pdf');
         });
     }

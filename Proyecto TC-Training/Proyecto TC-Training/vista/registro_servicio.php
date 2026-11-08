@@ -39,6 +39,7 @@ if (!isset($mensaje) && !isset($montoValor)) {
                         <span class="currency-symbol">$</span>
                         <input type="number" step="0.01" min="0.01" id="monto" name="monto" class="form-control flex-1" value="<?php echo htmlspecialchars($montoValor ?? ''); ?>" required>
                     </section>
+                    <small class="text-muted">Escribe el monto en la moneda de la cuenta de origen (BS o USD). Si es en BS se convierte a dólares con la tasa del día, y la cuenta debe tener saldo suficiente.</small>
                 </fieldset>
 
                 <fieldset class="form-group">
@@ -52,9 +53,9 @@ if (!isset($mensaje) && !isset($montoValor)) {
                 </fieldset>
 
                 <fieldset class="form-group">
-                    <label for="id_cuenta" class="form-label">Cuenta (Opcional)</label>
-                    <select id="id_cuenta" name="id_cuenta" class="form-control">
-                        <option value="">Ninguna / Efectivo</option>
+                    <label for="id_cuenta" class="form-label">Cuenta de origen</label>
+                    <select id="id_cuenta" name="id_cuenta" class="form-control" required>
+                        <option value="">Seleccione cuenta</option>
                         <?php foreach($cuentasList as $c): ?>
                             <option value="<?php echo $c['id_cuenta']; ?>" <?php echo (isset($idCuentaValor) && $idCuentaValor == $c['id_cuenta']) ? 'selected' : ''; ?>>
                                 <?php echo htmlspecialchars($c['banco_nombre'] . ' - ' . $c['num_cuenta'] . ' (' . $c['tipo_moneda'] . ')'); ?>

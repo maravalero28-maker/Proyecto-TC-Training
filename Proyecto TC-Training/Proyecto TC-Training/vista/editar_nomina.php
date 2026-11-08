@@ -23,6 +23,9 @@ if (!isset($nomina)) {
                 <h1 class="font-lexend">Editar Pago de Nómina</h1>
                 <p>Modifica los datos del pago.</p>
             </header>
+            <?php if (!empty($mensaje)): ?>
+                <section class="alert-container"><?php echo $mensaje; ?></section>
+            <?php endif; ?>
             <form action="../controlador/NominaController.php" method="POST" novalidate>
                 <input type="hidden" name="id_nomina" value="<?php echo htmlspecialchars($nomina['id_nomina']); ?>">
 
@@ -59,6 +62,7 @@ if (!isset($nomina)) {
                 <fieldset class="form-group">
                     <label for="monto" class="form-label">Monto</label>
                     <input type="number" step="0.01" min="0.01" id="monto" name="monto" class="form-control" value="<?php echo htmlspecialchars($nomina['monto']); ?>" required>
+                    <small class="text-muted">Escribe el monto en la moneda de la cuenta de origen (BS o USD). Si es en BS se convierte a dólares con la tasa del día, y la cuenta debe tener saldo suficiente.</small>
                 </fieldset>
 
                 <fieldset class="form-group">
@@ -79,9 +83,9 @@ if (!isset($nomina)) {
                 </fieldset>
 
                 <fieldset class="form-group">
-                    <label for="id_cuenta" class="form-label">Cuenta / Banco Receptora</label>
-                    <select id="id_cuenta" name="id_cuenta" class="form-control">
-                        <option value="">Seleccione cuenta (Opcional)</option>
+                    <label for="id_cuenta" class="form-label">Cuenta de origen</label>
+                    <select id="id_cuenta" name="id_cuenta" class="form-control" required>
+                        <option value="">Seleccione cuenta</option>
                         <?php foreach($cuentasList as $cuenta): ?>
                             <option value="<?php echo $cuenta['id_cuenta']; ?>" <?php echo (isset($idCuentaValor) && $idCuentaValor == $cuenta['id_cuenta']) ? 'selected' : ''; ?>>
                                 <?php echo htmlspecialchars($cuenta['banco_nombre'] . ' - ' . $cuenta['num_cuenta'] . ' (' . $cuenta['tipo_moneda'] . ')'); ?>

@@ -57,6 +57,12 @@ if (!isset($bancosList)) {
                     </select>
                 </fieldset>
 
+                <fieldset class="form-group">
+                    <label for="saldo_inicial" class="form-label">Saldo inicial (opcional)</label>
+                    <input type="number" step="0.01" min="0" id="saldo_inicial" name="saldo_inicial" class="form-control" placeholder="0.00" value="<?php echo $saldoInicialValor ?? ''; ?>">
+                    <small class="text-muted">Dinero que ya tiene la cuenta, en su misma moneda. Se usa para verificar que alcance al pagar nómina y servicios. Si la cuenta es en BS, se necesita la tasa de hoy.</small>
+                </fieldset>
+
                 <button type="submit" name="btncrearcuenta" class="btn btn-primary login-btn">Registrar cuenta</button>
             </form>
             <footer class="login-footer">

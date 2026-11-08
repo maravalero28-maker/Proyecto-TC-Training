@@ -122,6 +122,7 @@ $safeFilters = isset($filters) ? $filters : array();
                                     <th>Monto</th>
                                     <th>Fecha</th>
                                     <th>Método</th>
+                                    <th>Cuenta</th>
                                     <th>Registrado por</th>
                                     <th>Estado</th>
                                     <th>Acciones</th>
@@ -165,6 +166,26 @@ $safeFilters = isset($filters) ? $filters : array();
         return new Intl.NumberFormat('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Number(value) || 0);
     }
 
+    // Equivalente en dólares del pago (los pagos antiguos sin conversión se toman tal cual)
+    function montoUSD(p) {
+        var usd = (p.monto_usd !== null && p.monto_usd !== undefined && p.monto_usd !== '') ? p.monto_usd : p.monto;
+        return Number(usd) || 0;
+    }
+
+    // Monto tal como se pagó: en BS se muestra también su equivalente en dólares
+    function formatMontoPago(p) {
+        if (p.moneda === 'BS') {
+            return 'Bs ' + formatAmount(p.monto) + ' <small>(&asymp; $' + formatAmount(montoUSD(p)) + ')</small>';
+        }
+        return '$' + formatAmount(p.monto);
+    }
+
+    // Cuenta de la que salió el dinero
+    function formatCuenta(p) {
+        if (!p.num_cuenta) return 'Sin cuenta';
+        return (p.banco_nombre ? p.banco_nombre + ' - ' : '') + p.num_cuenta + (p.moneda_cuenta ? ' (' + p.moneda_cuenta + ')' : '');
+    }
+
     function escapeHtml(text) {
         return String(text || '').replace(/[&<>\"]+/g, function(match) {
             var map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' };
@@ -175,15 +196,16 @@ $safeFilters = isset($filters) ? $filters : array();
     function renderPaymentsTable(pagos) {
         if (!paymentsTableBody) return;
         if (!pagos || pagos.length === 0) {
-            paymentsTableBody.innerHTML = '<tr><td colspan="7" class="empty-table-msg">No hay pagos de servicios registrados.</td></tr>';
+            paymentsTableBody.innerHTML = '<tr><td colspan="8" class="empty-table-msg">No hay pagos de servicios registrados.</td></tr>';
             return;
         }
         paymentsTableBody.innerHTML = pagos.map(function(p) {
             return '<tr>' +
                 '<td>' + escapeHtml(p.concepto || '') + '</td>' +
-                '<td>$' + formatAmount(p.monto) + '</td>' +
+                '<td>' + formatMontoPago(p) + '</td>' +
                 '<td>' + escapeHtml(p.fecha || '') + '</td>' +
                 '<td>' + escapeHtml(p.metodo_pago || p.nombre_metodo || '') + '</td>' +
+                '<td>' + escapeHtml(formatCuenta(p)) + '</td>' +
                 '<td>' + escapeHtml(p.NombreAdmin || 'Sistema') + '</td>' +
                 '<td><span class="badge ' + (Number(p.anulado) === 1 ? 'badge-inactive' : 'badge-active') + '">' + (Number(p.anulado) === 1 ? 'Inhabilitado' : 'Habilitado') + '</span></td>' +
                 '<td>' +
@@ -210,7 +232,7 @@ $safeFilters = isset($filters) ? $filters : array();
         var totalsByMethod = {};
         var totalAmount = 0;
         pagos.forEach(function(p) {
-            var amount = Number(p.monto) || 0;
+            var amount = montoUSD(p);
             var method = p.metodo_pago || 'Efectivo';
             totalsByMethod[method] = (totalsByMethod[method] || 0) + amount;
             totalAmount += amount;
@@ -333,8 +355,8 @@ $safeFilters = isset($filters) ? $filters : array();
     if (exportExcelBtn) {
         exportExcelBtn.addEventListener('click', function() {
             var pagos = getFilteredPagos(currentReport).filter(function(p) { return Number(p.anulado) !== 1; });
-            var rows = [['Concepto', 'Monto', 'Fecha', 'Método', 'Registrado por']];
-            pagos.forEach(function(p) { rows.push([p.concepto, parseFloat(p.monto), p.fecha, p.metodo_pago, p.NombreAdmin || 'Sistema']); });
+            var rows = [['Concepto', 'Monto (USD)', 'Fecha', 'Método', 'Cuenta', 'Registrado por']];
+            pagos.forEach(function(p) { rows.push([p.concepto, montoUSD(p), p.fecha, p.nombre_metodo || p.metodo_pago, formatCuenta(p), p.NombreAdmin || 'Sistema']); });
             var wb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rows), 'Servicios');
             XLSX.writeFile(wb, 'reporte-servicios.xlsx');
@@ -347,8 +369,8 @@ $safeFilters = isset($filters) ? $filters : array();
             var jsPDF = window.jspdf.jsPDF;
             var doc = new jsPDF();
             doc.text('Reporte de Servicios', 14, 16);
-            var body = pagos.map(function(p) { return [p.concepto, '$' + formatAmount(p.monto), p.fecha, p.metodo_pago, p.NombreAdmin || 'Sistema']; });
-            doc.autoTable({ startY: 24, head: [['Concepto', 'Monto', 'Fecha', 'Método', 'Registrado por']], body: body });
+            var body = pagos.map(function(p) { return [p.concepto, '$' + formatAmount(montoUSD(p)), p.fecha, p.nombre_metodo || p.metodo_pago, formatCuenta(p), p.NombreAdmin || 'Sistema']; });
+            doc.autoTable({ startY: 24, head: [['Concepto', 'Monto (USD)', 'Fecha', 'Método', 'Cuenta', 'Registrado por']], body: body });
             doc.save('reporte-servicios.pdf');
         });
     }
