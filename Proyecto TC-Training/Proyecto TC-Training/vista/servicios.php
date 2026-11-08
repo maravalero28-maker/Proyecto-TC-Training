@@ -123,6 +123,7 @@ $safeFilters = isset($filters) ? $filters : array();
                                     <th>Fecha</th>
                                     <th>Método</th>
                                     <th>Registrado por</th>
+                                    <th>Estado</th>
                                     <th>Acciones</th>
                                 </tr>
                             </thead>
@@ -174,7 +175,7 @@ $safeFilters = isset($filters) ? $filters : array();
     function renderPaymentsTable(pagos) {
         if (!paymentsTableBody) return;
         if (!pagos || pagos.length === 0) {
-            paymentsTableBody.innerHTML = '<tr><td colspan="6" class="empty-table-msg">No hay pagos de servicios registrados.</td></tr>';
+            paymentsTableBody.innerHTML = '<tr><td colspan="7" class="empty-table-msg">No hay pagos de servicios registrados.</td></tr>';
             return;
         }
         paymentsTableBody.innerHTML = pagos.map(function(p) {
@@ -184,13 +185,11 @@ $safeFilters = isset($filters) ? $filters : array();
                 '<td>' + escapeHtml(p.fecha || '') + '</td>' +
                 '<td>' + escapeHtml(p.metodo_pago || p.nombre_metodo || '') + '</td>' +
                 '<td>' + escapeHtml(p.NombreAdmin || 'Sistema') + '</td>' +
+                '<td><span class="badge ' + (Number(p.anulado) === 1 ? 'badge-inactive' : 'badge-active') + '">' + (Number(p.anulado) === 1 ? 'Inhabilitado' : 'Habilitado') + '</span></td>' +
                 '<td>' +
                     '<section class="transactions-actions" style="display:flex; gap:10px;">' +
                         '<a href="../controlador/PagoServicioController.php?action=editar&id=' + encodeURIComponent(p.id_pago_servicio) + '" class="text-primary" title="Editar">' +
                             '<svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>' +
-                        '</a>' +
-                        '<a href="../controlador/PagoServicioController.php?action=eliminar&id=' + encodeURIComponent(p.id_pago_servicio) + '" class="text-danger" title="Eliminar" onclick="return confirm(\'¿Eliminar este pago de servicio?\');">' +
-                            '<svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>' +
                         '</a>' +
                     '</section>' +
                 '</td>' +
@@ -268,7 +267,7 @@ $safeFilters = isset($filters) ? $filters : array();
         currentReport = data;
         var pagosFiltrados = getFilteredPagos(data);
         renderPaymentsTable(pagosFiltrados);
-        updateReportPreview(pagosFiltrados);
+        updateReportPreview(pagosFiltrados.filter(function(p) { return Number(p.anulado) !== 1; }));
     }
 
     function buildMonthMenu() {
@@ -333,7 +332,7 @@ $safeFilters = isset($filters) ? $filters : array();
 
     if (exportExcelBtn) {
         exportExcelBtn.addEventListener('click', function() {
-            var pagos = getFilteredPagos(currentReport);
+            var pagos = getFilteredPagos(currentReport).filter(function(p) { return Number(p.anulado) !== 1; });
             var rows = [['Concepto', 'Monto', 'Fecha', 'Método', 'Registrado por']];
             pagos.forEach(function(p) { rows.push([p.concepto, parseFloat(p.monto), p.fecha, p.metodo_pago, p.NombreAdmin || 'Sistema']); });
             var wb = XLSX.utils.book_new();
@@ -344,7 +343,7 @@ $safeFilters = isset($filters) ? $filters : array();
 
     if (exportPdfBtn) {
         exportPdfBtn.addEventListener('click', function() {
-            var pagos = getFilteredPagos(currentReport);
+            var pagos = getFilteredPagos(currentReport).filter(function(p) { return Number(p.anulado) !== 1; });
             var jsPDF = window.jspdf.jsPDF;
             var doc = new jsPDF();
             doc.text('Reporte de Servicios', 14, 16);

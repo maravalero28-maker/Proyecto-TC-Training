@@ -99,6 +99,23 @@ if (!isset($pago) && !isset($id_pagoValor)) {
                 <button type="submit" name="btnactualizarpago" class="btn btn-primary login-btn">Actualizar Pago</button>
             </form>
 
+            <section class="form-group" style="margin-top: 1.5rem;">
+                <label class="form-label">Estado del pago</label>
+                <p>
+                    <span class="badge <?php echo !empty($anuladoValor) ? 'badge-inactive' : 'badge-active'; ?>">
+                        <?php echo !empty($anuladoValor) ? 'Inhabilitado' : 'Habilitado'; ?>
+                    </span>
+                </p>
+                <form action="../controlador/pagoscontrolador.php" method="POST"
+                      onsubmit="return confirm('<?php echo !empty($anuladoValor) ? '¿Habilitar este pago? Volverá a contar en ingresos y reportes.' : '¿Inhabilitar este pago? Dejará de contar en ingresos y reportes.'; ?>');">
+                    <input type="hidden" name="id_pago" value="<?php echo htmlspecialchars($id_pagoValor); ?>">
+                    <input type="hidden" name="nuevo_estado" value="<?php echo !empty($anuladoValor) ? '0' : '1'; ?>">
+                    <button type="submit" name="btncambiarestado" class="btn <?php echo !empty($anuladoValor) ? 'btn-primary' : 'btn-outline'; ?>">
+                        <?php echo !empty($anuladoValor) ? 'Habilitar pago' : 'Inhabilitar pago'; ?>
+                    </button>
+                </form>
+            </section>
+
             <footer class="login-footer">
                 <a href="../controlador/pagoscontrolador.php" class="link-back">
                     <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"></path></svg>

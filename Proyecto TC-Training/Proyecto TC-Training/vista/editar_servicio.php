@@ -65,6 +65,24 @@ if (!isset($servicio)) {
 
                 <button type="submit" name="btnactualizarservicio" class="btn btn-primary login-btn">Actualizar Servicio</button>
             </form>
+
+            <section class="form-group" style="margin-top: 1.5rem;">
+                <label class="form-label">Estado del servicio</label>
+                <p>
+                    <span class="badge <?php echo !empty($servicio['anulado']) ? 'badge-inactive' : 'badge-active'; ?>">
+                        <?php echo !empty($servicio['anulado']) ? 'Inhabilitado' : 'Habilitado'; ?>
+                    </span>
+                </p>
+                <form action="../controlador/PagoServicioController.php" method="POST"
+                      onsubmit="return confirm('<?php echo !empty($servicio['anulado']) ? '¿Habilitar este servicio? Volverá a contar en fondos y reportes.' : '¿Inhabilitar este servicio? Dejará de contar en fondos y reportes.'; ?>');">
+                    <input type="hidden" name="id_pago_servicio" value="<?php echo htmlspecialchars($servicio['id_pago_servicio']); ?>">
+                    <input type="hidden" name="nuevo_estado" value="<?php echo !empty($servicio['anulado']) ? '0' : '1'; ?>">
+                    <button type="submit" name="btncambiarestadoservicio" class="btn <?php echo !empty($servicio['anulado']) ? 'btn-primary' : 'btn-outline'; ?>">
+                        <?php echo !empty($servicio['anulado']) ? 'Habilitar servicio' : 'Inhabilitar servicio'; ?>
+                    </button>
+                </form>
+            </section>
+
             <footer class="login-footer">
                 <a href="../controlador/PagoServicioController.php" class="link-back">
                     <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"></path></svg>

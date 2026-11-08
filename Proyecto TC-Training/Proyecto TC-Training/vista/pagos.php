@@ -137,6 +137,7 @@ if (!isset($pagos) || !isset($filtro)) {
                                     <th>Monto</th>
                                     <th>Fecha</th>
                                     <th>Método</th>
+                                    <th>Estado</th>
                                     <th>Acciones</th>
                                 </tr>
                             </thead>
@@ -215,7 +216,7 @@ if (!isset($pagos) || !isset($filtro)) {
     function renderPaymentsTable(pagos) {
         if (!paymentsTableBody) return;
         if (!pagos || pagos.length === 0) {
-            paymentsTableBody.innerHTML = '<tr><td colspan="5" class="empty-table-msg">No hay pagos registrados.</td></tr>';
+            paymentsTableBody.innerHTML = '<tr><td colspan="6" class="empty-table-msg">No hay pagos registrados.</td></tr>';
             return;
         }
         paymentsTableBody.innerHTML = pagos.map(p => `
@@ -224,6 +225,7 @@ if (!isset($pagos) || !isset($filtro)) {
                 <td>${formatMontoPago(p)}</td>
                 <td>${escapeHtml(p.Fecha || '')}</td>
                 <td>${escapeHtml(p.nombre_metodo || p.MetodoPago || '')}</td>
+                <td><span class="badge ${Number(p.anulado) === 1 ? 'badge-inactive' : 'badge-active'}">${Number(p.anulado) === 1 ? 'Inhabilitado' : 'Habilitado'}</span></td>
                 <td>
                     <section class="transactions-actions" style="display:flex; gap:10px;">
                         <a href="../controlador/pagoscontrolador.php?action=editar&id=${encodeURIComponent(p.id_pago)}" class="text-primary" title="Editar pago">
@@ -231,9 +233,6 @@ if (!isset($pagos) || !isset($filtro)) {
                                 <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
                                 <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
                             </svg>
-                        </a>
-                        <a href="../controlador/pagoscontrolador.php?action=eliminar&id=${encodeURIComponent(p.id_pago)}" class="text-danger" title="Eliminar pago" onclick="return confirm('¿Eliminar este pago?');">
-                            <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
                         </a>
                     </section>
                 </td>
@@ -452,16 +451,21 @@ if (!isset($pagos) || !isset($filtro)) {
         });
     }
 
+    function getFilteredPagosHabilitados(report) {
+        return getFilteredPagos(report).filter(p => Number(p.anulado) !== 1);
+    }
+
     function updatePage(data) {
         currentReport = data;
         let pagosFiltrados = getFilteredPagos(data);
+        const pagosHabilitados = pagosFiltrados.filter(p => Number(p.anulado) !== 1);
 
         // ORDENAR ESTRICTAMENTE POR FECHA DESCENDENTE 
         pagosFiltrados.sort((a, b) => new Date(b.Fecha) - new Date(a.Fecha));
 
         renderPaymentsTable(pagosFiltrados);
         renderPaymentsMatrix(data);
-        updateReportPreview(pagosFiltrados);
+        updateReportPreview(pagosHabilitados);
     }
 
     function buildMonthMenu() {
@@ -683,13 +687,13 @@ if (!isset($pagos) || !isset($filtro)) {
 
     if (exportExcelBtn) {
         exportExcelBtn.addEventListener('click', function() {
-            exportToExcel(getFilteredPagos(currentReport || initialReport));
+            exportToExcel(getFilteredPagosHabilitados(currentReport || initialReport));
         });
     }
 
     if (exportPdfBtn) {
         exportPdfBtn.addEventListener('click', function() {
-            exportToPDF(getFilteredPagos(currentReport || initialReport));
+            exportToPDF(getFilteredPagosHabilitados(currentReport || initialReport));
         });
     }
 

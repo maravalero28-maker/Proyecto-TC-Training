@@ -29,6 +29,20 @@ if (!isset($nomina)) {
                 <fieldset class="form-group">
                     <label for="id_entrenador" class="form-label">Entrenador</label>
                     <select id="id_entrenador" name="id_entrenador" class="form-control" required>
+                        <?php
+                        $entrenadorEncontrado = false;
+                        foreach ($entrenadores as $e) {
+                            if ((string) $e['cedula'] === (string) $nomina['id_entrenador']) {
+                                $entrenadorEncontrado = true;
+                                break;
+                            }
+                        }
+                        ?>
+                        <?php if (!$entrenadorEncontrado): ?>
+                            <option value="<?php echo htmlspecialchars($nomina['id_entrenador']); ?>" selected>
+                                Entrenador no encontrado (Cédula: <?php echo htmlspecialchars($nomina['id_entrenador']); ?>)
+                            </option>
+                        <?php endif; ?>
                         <?php foreach ($entrenadores as $e): ?>
                             <option value="<?php echo $e['cedula']; ?>" <?php echo ($e['cedula'] == $nomina['id_entrenador']) ? 'selected' : ''; ?>>
                                 <?php echo htmlspecialchars($e['nombre'] . ' ' . $e['apellido'] . ' (Cédula: ' . $e['cedula'] . ')'); ?>
@@ -78,6 +92,24 @@ if (!isset($nomina)) {
 
                 <button type="submit" name="btnactualizarnomina" class="btn btn-primary login-btn">Actualizar Pago Nómina</button>
             </form>
+
+            <section class="form-group" style="margin-top: 1.5rem;">
+                <label class="form-label">Estado del pago</label>
+                <p>
+                    <span class="badge <?php echo !empty($nomina['anulado']) ? 'badge-inactive' : 'badge-active'; ?>">
+                        <?php echo !empty($nomina['anulado']) ? 'Inhabilitado' : 'Habilitado'; ?>
+                    </span>
+                </p>
+                <form action="../controlador/NominaController.php" method="POST"
+                      onsubmit="return confirm('<?php echo !empty($nomina['anulado']) ? '¿Habilitar este pago? Volverá a contar en fondos y reportes.' : '¿Inhabilitar este pago? Dejará de contar en fondos y reportes.'; ?>');">
+                    <input type="hidden" name="id_nomina" value="<?php echo htmlspecialchars($nomina['id_nomina']); ?>">
+                    <input type="hidden" name="nuevo_estado" value="<?php echo !empty($nomina['anulado']) ? '0' : '1'; ?>">
+                    <button type="submit" name="btncambiarestadonomina" class="btn <?php echo !empty($nomina['anulado']) ? 'btn-primary' : 'btn-outline'; ?>">
+                        <?php echo !empty($nomina['anulado']) ? 'Habilitar pago' : 'Inhabilitar pago'; ?>
+                    </button>
+                </form>
+            </section>
+
             <footer class="login-footer">
                 <a href="../controlador/NominaController.php" class="link-back">
                     <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"></path></svg>
