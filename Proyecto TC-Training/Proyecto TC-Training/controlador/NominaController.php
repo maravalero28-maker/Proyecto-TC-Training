@@ -8,11 +8,14 @@ if (!isset($_SESSION['admin_id'])) {
 require_once "../configuracion/conecxion.php";
 require_once "../modelo/ModelNomina.php";
 require_once "../modelo/Entrenador.php";
+require_once "../modelo/ModelTasa.php";
+require_once "../modelo/ModelFondo.php";
 
 $database = new Conexion();
 $db = $database->getConexion();
 $objNomina = new ModelNomina($db);
 $objEntrenador = new Entrenador($db);
+$objFondo = new ModelFondo($db);
 
 // Obtener métodos de pago y cuentas desde la BD
 $metodosPagoList = [];
@@ -56,7 +59,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['btnnomina'])) {
         exit();
     }
 
-    $resultado = $objNomina->registrar($id_entrenador, $id_admin, floatval($monto), $fecha, $concepto, $id_metodo, $id_cuenta);
+    // La cuenta es obligatoria, se convierte a dólares y debe tener saldo suficiente
+    $validacion = $objFondo->validarEgreso($cuentasList, $id_cuenta, floatval($monto), $fecha);
+    if ($validacion['error'] !== '') {
+        $mensaje = '<article class="alert alert-warning">' . htmlspecialchars($validacion['error']) . '</article>';
+        $entrenadores = $objEntrenador->obtenerTodos('activo');
+        $id_entrenadorValor = $id_entrenador;
+        $idMetodoValor = $id_metodo;
+        $idCuentaValor = $id_cuenta;
+        $montoValor = $rawMonto;
+        $fechaValor = $fecha;
+        $conceptoValor = $concepto;
+        include "../vista/registro_nomina.php";
+        exit();
+    }
+
+    $resultado = $objNomina->registrar($id_entrenador, $id_admin, floatval($monto), $fecha, $concepto, $id_metodo, $id_cuenta, $validacion['moneda'], $validacion['tasa'], $validacion['monto_usd']);
     if ($resultado === 'success') {
         header("Location: ../controlador/NominaController.php?msj=creado");
         exit();
@@ -75,6 +93,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['btncambiarestadonomin
     if (!$nominaActual || !in_array($nuevoEstado, ['0', '1'], true)) {
         header("Location: ../controlador/NominaController.php?msj=error");
         exit();
+    }
+
+    // Al habilitar un pago de nómina vuelve a descontarse de su cuenta, así que debe alcanzar el saldo
+    if ($nuevoEstado === '0' && !empty($nominaActual['id_cuenta'])) {
+        $errorSaldo = $objFondo->verificarSaldoEgreso($cuentasList, $nominaActual['id_cuenta'], floatval($nominaActual['monto']), 'pago_nomina', $id_nomina);
+        if ($errorSaldo !== '') {
+            header("Location: ../controlador/NominaController.php?msj=sin_saldo");
+            exit();
+        }
     }
 
     if ($objNomina->cambiarEstado($id_nomina, $nuevoEstado)) {
@@ -100,7 +127,40 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['btnactualizarnomina']
         header("Location: ../controlador/NominaController.php?msj=error");
         exit();
     }
-    $actualizado = $objNomina->actualizar($id_nomina, $id_entrenador, floatval($monto), $fecha, $concepto, $id_metodo, $id_cuenta);
+
+    $nominaActual = $objNomina->obtenerPorId($id_nomina);
+    $moneda = $nominaActual['moneda'] ?? null;
+    $tasa = $nominaActual['tasa'] ?? null;
+    $montoUsd = $nominaActual['monto_usd'] ?? null;
+
+    // Solo se reconvierte y se revisa el saldo si cambia algo que afecta el valor del pago
+    $cambioFinanciero = !$nominaActual
+        || round(floatval($nominaActual['monto']), 2) != round(floatval($monto), 2)
+        || $nominaActual['fecha_pago'] !== $fecha
+        || (int) ($nominaActual['id_cuenta'] ?? 0) !== (int) ($id_cuenta ?? 0);
+
+    if ($cambioFinanciero || empty($id_cuenta)) {
+        $validacion = $objFondo->validarEgreso($cuentasList, $id_cuenta, floatval($monto), $fecha, 'pago_nomina', $id_nomina);
+        if ($validacion['error'] !== '') {
+            $mensaje = '<article class="alert alert-warning">' . htmlspecialchars($validacion['error']) . '</article>';
+            $nomina = $nominaActual ?: [];
+            $nomina['id_nomina'] = $id_nomina;
+            $nomina['id_entrenador'] = $id_entrenador;
+            $nomina['monto'] = $rawMonto;
+            $nomina['fecha_pago'] = $fecha;
+            $nomina['concepto'] = $concepto;
+            $entrenadores = $objEntrenador->obtenerTodos('todos');
+            $idMetodoValor = $id_metodo;
+            $idCuentaValor = $id_cuenta;
+            include "../vista/editar_nomina.php";
+            exit();
+        }
+        $moneda = $validacion['moneda'];
+        $tasa = $validacion['tasa'];
+        $montoUsd = $validacion['monto_usd'];
+    }
+
+    $actualizado = $objNomina->actualizar($id_nomina, $id_entrenador, floatval($monto), $fecha, $concepto, $id_metodo, $id_cuenta, $moneda, $tasa, $montoUsd);
     if ($actualizado) {
         header("Location: ../controlador/NominaController.php?msj=actualizado");
         exit();
@@ -145,6 +205,8 @@ if (isset($_GET['msj'])) {
         $mensaje = '<article class="alert alert-success">Pago de nómina habilitado correctamente.</article>';
     } elseif ($_GET['msj'] === 'inhabilitado') {
         $mensaje = '<article class="alert alert-success">Pago de nómina inhabilitado correctamente. El registro se conservó.</article>';
+    } elseif ($_GET['msj'] === 'sin_saldo') {
+        $mensaje = '<article class="alert alert-warning">No se puede habilitar este pago: la cuenta no tiene saldo suficiente.</article>';
     } elseif ($_GET['msj'] === 'error') {
         $mensaje = '<article class="alert alert-danger">Ocurrió un error al procesar la solicitud.</article>';
     }
@@ -158,7 +220,7 @@ $entrenadoresList = $objEntrenador->obtenerTodos('todos');
 // Generar matriz de pagos de nómina por mes para cada entrenador
 $nominaMatrix = [];
 try {
-    $sql = "SELECT id_entrenador, MONTH(fecha_pago) AS mes, SUM(monto) AS total, COUNT(id_nomina) AS count_payments FROM pago_nomina";
+    $sql = "SELECT id_entrenador, MONTH(fecha_pago) AS mes, SUM(COALESCE(monto_usd, monto)) AS total, COUNT(id_nomina) AS count_payments FROM pago_nomina";
     $params = [];
     $conds = ["anulado = 0"];
     if (!empty($year)) {

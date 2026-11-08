@@ -7,10 +7,13 @@ if (!isset($_SESSION['admin_id'])) {
 
 require_once "../configuracion/conecxion.php";
 require_once "../modelo/ModelPagoServicio.php";
+require_once "../modelo/ModelTasa.php";
+require_once "../modelo/ModelFondo.php";
 
 $database = new Conexion();
 $db = $database->getConexion();
 $objServicio = new ModelPagoServicio($db);
+$objFondo = new ModelFondo($db);
 
 // Obtener métodos de pago y cuentas desde la BD
 $metodosPagoList = [];
@@ -52,7 +55,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['btnservicio'])) {
         exit();
     }
 
-    $resultado = $objServicio->registrar(floatval($monto), $concepto, $id_metodo, $id_cuenta, $fecha, $id_admin);
+    // La cuenta es obligatoria, se convierte a dólares y debe tener saldo suficiente
+    $validacion = $objFondo->validarEgreso($cuentasList, $id_cuenta, floatval($monto), $fecha);
+    if ($validacion['error'] !== '') {
+        $mensaje = '<article class="alert alert-warning">' . htmlspecialchars($validacion['error']) . '</article>';
+        $montoValor = $rawMonto;
+        $conceptoValor = $concepto;
+        $fechaValor = $fecha;
+        $idMetodoValor = $id_metodo;
+        $idCuentaValor = $id_cuenta;
+        include "../vista/registro_servicio.php";
+        exit();
+    }
+
+    $resultado = $objServicio->registrar(floatval($monto), $concepto, $id_metodo, $id_cuenta, $fecha, $id_admin, $validacion['moneda'], $validacion['tasa'], $validacion['monto_usd']);
     if ($resultado === 'success') {
         header("Location: ../controlador/PagoServicioController.php?msj=creado");
         exit();
@@ -70,6 +86,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['btncambiarestadoservi
     if (!$servicioActual || !in_array($nuevoEstado, ['0', '1'], true)) {
         header("Location: ../controlador/PagoServicioController.php?msj=error");
         exit();
+    }
+
+    // Al habilitar un pago de servicio vuelve a descontarse de su cuenta, así que debe alcanzar el saldo
+    if ($nuevoEstado === '0' && !empty($servicioActual['id_cuenta'])) {
+        $errorSaldo = $objFondo->verificarSaldoEgreso($cuentasList, $servicioActual['id_cuenta'], floatval($servicioActual['monto']), 'pago_servicio', $id);
+        if ($errorSaldo !== '') {
+            header("Location: ../controlador/PagoServicioController.php?msj=sin_saldo");
+            exit();
+        }
     }
 
     if ($objServicio->cambiarEstado($id, $nuevoEstado)) {
@@ -94,7 +119,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['btnactualizarservicio
         header("Location: ../controlador/PagoServicioController.php?msj=error");
         exit();
     }
-    $actualizado = $objServicio->actualizar($id, floatval($monto), $concepto, $id_metodo, $id_cuenta, $fecha);
+
+    $servicioActual = $objServicio->obtenerPorId($id);
+    $moneda = $servicioActual['moneda'] ?? null;
+    $tasa = $servicioActual['tasa'] ?? null;
+    $montoUsd = $servicioActual['monto_usd'] ?? null;
+
+    // Solo se reconvierte y se revisa el saldo si cambia algo que afecta el valor del pago
+    $cambioFinanciero = !$servicioActual
+        || round(floatval($servicioActual['monto']), 2) != round(floatval($monto), 2)
+        || $servicioActual['fecha'] !== $fecha
+        || (int) ($servicioActual['id_cuenta'] ?? 0) !== (int) ($id_cuenta ?? 0);
+
+    if ($cambioFinanciero || empty($id_cuenta)) {
+        $validacion = $objFondo->validarEgreso($cuentasList, $id_cuenta, floatval($monto), $fecha, 'pago_servicio', $id);
+        if ($validacion['error'] !== '') {
+            $mensaje = '<article class="alert alert-warning">' . htmlspecialchars($validacion['error']) . '</article>';
+            $servicio = $servicioActual ?: [];
+            $servicio['id_pago_servicio'] = $id;
+            $servicio['monto'] = $rawMonto;
+            $servicio['concepto'] = $concepto;
+            $servicio['fecha'] = $fecha;
+            $idMetodoValor = $id_metodo;
+            $idCuentaValor = $id_cuenta;
+            include "../vista/editar_servicio.php";
+            exit();
+        }
+        $moneda = $validacion['moneda'];
+        $tasa = $validacion['tasa'];
+        $montoUsd = $validacion['monto_usd'];
+    }
+
+    $actualizado = $objServicio->actualizar($id, floatval($monto), $concepto, $id_metodo, $id_cuenta, $fecha, $moneda, $tasa, $montoUsd);
     if ($actualizado) {
         header("Location: ../controlador/PagoServicioController.php?msj=actualizado");
         exit();
@@ -136,6 +192,8 @@ if (isset($_GET['msj'])) {
         $mensaje = '<article class="alert alert-success">Pago de servicio habilitado correctamente.</article>';
     } elseif ($_GET['msj'] === 'inhabilitado') {
         $mensaje = '<article class="alert alert-success">Pago de servicio inhabilitado correctamente. El registro se conservó.</article>';
+    } elseif ($_GET['msj'] === 'sin_saldo') {
+        $mensaje = '<article class="alert alert-warning">No se puede habilitar este pago: la cuenta no tiene saldo suficiente.</article>';
     } elseif ($_GET['msj'] === 'error') {
         $mensaje = '<article class="alert alert-danger">Ocurrió un error al procesar la solicitud.</article>';
     }
@@ -148,7 +206,7 @@ $pagosServicios = $objServicio->obtenerTodos($search, $year, $filters);
 // Matriz de servicios por mes del año actual
 $serviciosMatrix = [];
 try {
-    $sql = "SELECT MONTH(fecha) AS mes, SUM(monto) AS total, COUNT(id_pago_servicio) AS count_payments FROM pago_servicio WHERE anulado = 0";
+    $sql = "SELECT MONTH(fecha) AS mes, SUM(COALESCE(monto_usd, monto)) AS total, COUNT(id_pago_servicio) AS count_payments FROM pago_servicio WHERE anulado = 0";
     $params = [];
     if (!empty($year)) {
         $sql .= " AND YEAR(fecha) = ?";

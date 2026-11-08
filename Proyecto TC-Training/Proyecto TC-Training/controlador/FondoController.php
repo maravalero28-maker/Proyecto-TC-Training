@@ -23,12 +23,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['btncrearcuenta'])) {
     $bancoNuevo = trim($_POST['banco_nuevo'] ?? '');
     $num_cuenta = trim($_POST['num_cuenta'] ?? '');
     $tipo_moneda = trim($_POST['tipo_moneda'] ?? '');
+    $rawSaldo = trim($_POST['saldo_inicial'] ?? '');
 
     $bancosList = $objFondo->obtenerBancos();
     $idBancoValor = $id_banco ?: '';
     $bancoNuevoValor = htmlspecialchars($bancoNuevo);
     $numCuentaValor = htmlspecialchars($num_cuenta);
     $tipoMonedaValor = $tipo_moneda;
+    $saldoInicialValor = htmlspecialchars($rawSaldo);
 
     if (($id_banco <= 0 && $bancoNuevo === '') || $num_cuenta === '' || !in_array($tipo_moneda, ['BS', 'USD'], true)) {
         $mensaje = '<article class="alert alert-warning">Selecciona o escribe un banco, e indica el número de cuenta y la moneda.</article>';
@@ -40,6 +42,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['btncrearcuenta'])) {
         $mensaje = '<article class="alert alert-warning">El nombre del banco o el número de cuenta es demasiado largo.</article>';
         include "../vista/registro_cuenta.php";
         exit();
+    }
+
+    // Saldo inicial (opcional): en la moneda de la cuenta; si es en BS se guarda también su equivalente en dólares con la tasa de hoy
+    $saldoInicial = 0;
+    $saldoInicialUsd = 0;
+    if ($rawSaldo !== '') {
+        $saldoNumero = str_replace(' ', '', $rawSaldo);
+        if (strpos($saldoNumero, ',') !== false) {
+            if (strpos($saldoNumero, '.') !== false) {
+                $saldoNumero = str_replace('.', '', $saldoNumero);
+            }
+            $saldoNumero = str_replace(',', '.', $saldoNumero);
+        }
+        if (!is_numeric($saldoNumero) || floatval($saldoNumero) < 0) {
+            $mensaje = '<article class="alert alert-warning">El saldo inicial debe ser un número igual o mayor que 0.</article>';
+            include "../vista/registro_cuenta.php";
+            exit();
+        }
+        $saldoInicial = round(floatval($saldoNumero), 2);
+        $saldoInicialUsd = $saldoInicial;
+        if ($tipo_moneda === 'BS' && $saldoInicial > 0) {
+            $tasaHoy = $objTasa->obtenerExacta(date('Y-m-d'));
+            if (!$tasaHoy) {
+                $mensaje = '<article class="alert alert-warning">Para registrar un saldo inicial en bolívares primero registra la tasa de hoy en Tasa del Día.</article>';
+                include "../vista/registro_cuenta.php";
+                exit();
+            }
+            $saldoInicialUsd = round($saldoInicial / $tasaHoy, 2);
+        }
     }
 
     if ($bancoNuevo !== '') {
@@ -58,7 +89,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['btncrearcuenta'])) {
         exit();
     }
 
-    if ($objFondo->registrar($id_banco, $num_cuenta, $tipo_moneda, 0)) {
+    if ($objFondo->registrarCuenta($id_banco, $num_cuenta, $tipo_moneda, $saldoInicial, $saldoInicialUsd)) {
         header("Location: ../controlador/FondoController.php?msj=cuenta_creada");
         exit();
     }
@@ -101,6 +132,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'nueva_cuenta') {
     $bancoNuevoValor = '';
     $numCuentaValor = '';
     $tipoMonedaValor = '';
+    $saldoInicialValor = '';
     include "../vista/registro_cuenta.php";
     exit();
 }

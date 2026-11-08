@@ -347,11 +347,29 @@ $filters = [
 $pagos = $objPago->obtenerTodos($search, $year, $filters);
 $clientsList = $objPago->obtenerClientes(true, $search);
 
+// Matriz de pagos: por cliente y mes del año seleccionado, con la cantidad de pagos y el total en dólares.
+// Los pagos inhabilitados no cuentan.
+$paymentsMatrix = [];
+foreach ($pagos as $p) {
+    if (!empty($p['anulado']) || empty($p['Fecha']) || (int) date('Y', strtotime($p['Fecha'])) !== (int) $year) {
+        continue;
+    }
+    $mes = (int) date('n', strtotime($p['Fecha']));
+    $idCliente = $p['id_cliente'];
+    $usd = (isset($p['monto_usd']) && $p['monto_usd'] !== null && $p['monto_usd'] !== '') ? floatval($p['monto_usd']) : floatval($p['Monto']);
+    if (!isset($paymentsMatrix[$idCliente][$mes])) {
+        $paymentsMatrix[$idCliente][$mes] = ['count' => 0, 'total' => 0];
+    }
+    $paymentsMatrix[$idCliente][$mes]['count']++;
+    $paymentsMatrix[$idCliente][$mes]['total'] += $usd;
+}
+
 if (isset($_GET['ajax']) && $_GET['ajax']) {
     header('Content-Type: application/json; charset=utf-8');
     echo json_encode([
         'pagos' => $pagos,
         'clientsList' => $clientsList,
+        'paymentsMatrix' => $paymentsMatrix,
         'year' => $year,
         'filters' => $filters
     ]);
