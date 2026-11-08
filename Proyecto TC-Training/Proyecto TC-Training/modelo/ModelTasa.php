@@ -28,12 +28,20 @@ class ModelTasa {
             $columnas = [
                 'moneda'    => "VARCHAR(3) DEFAULT NULL",
                 'tasa'      => "DECIMAL(18,4) DEFAULT NULL",
-                'monto_usd' => "DECIMAL(12,2) DEFAULT NULL"
+                'monto_usd' => "DECIMAL(12,2) DEFAULT NULL",
+                'anulado'   => "TINYINT(1) NOT NULL DEFAULT 0"
             ];
             foreach ($columnas as $nombre => $definicion) {
                 $stmt = $db->query("SHOW COLUMNS FROM pagos LIKE '{$nombre}'");
                 if ($stmt->rowCount() === 0) {
                     $db->exec("ALTER TABLE pagos ADD COLUMN {$nombre} {$definicion}");
+                }
+            }
+
+            foreach (['pago_nomina', 'pago_servicio'] as $tabla) {
+                $stmt = $db->query("SHOW COLUMNS FROM {$tabla} LIKE 'anulado'");
+                if ($stmt->rowCount() === 0) {
+                    $db->exec("ALTER TABLE {$tabla} ADD COLUMN anulado TINYINT(1) NOT NULL DEFAULT 0");
                 }
             }
             self::$esquemaListo = true;

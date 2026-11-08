@@ -1,10 +1,13 @@
 <?php
+require_once __DIR__ . '/ModelTasa.php';
+
 class ModelFondos {
     private $db;
     private $lastError = null;
 
     public function __construct($db_conn) {
         $this->db = $db_conn;
+        ModelTasa::asegurarEsquema($this->db);
     }
 
     public function getLastError() {
@@ -69,7 +72,7 @@ class ModelFondos {
             LEFT JOIN metodo_pago m ON p.id_metodo = m.id_metodo
             LEFT JOIN cuenta c ON p.id_cuenta = c.id_cuenta
             LEFT JOIN banco b ON c.id_banco = b.id_banco
-            WHERE p.id_cuenta IS NOT NULL {$whereCuentaCliente}
+            WHERE p.id_cuenta IS NOT NULL AND p.anulado = 0 {$whereCuentaCliente}
 
             UNION ALL
 
@@ -89,7 +92,7 @@ class ModelFondos {
             LEFT JOIN metodo_pago m ON n.id_metodo = m.id_metodo
             LEFT JOIN cuenta c ON n.id_cuenta = c.id_cuenta
             LEFT JOIN banco b ON c.id_banco = b.id_banco
-            WHERE n.id_cuenta IS NOT NULL {$whereCuentaNomina}
+            WHERE n.id_cuenta IS NOT NULL AND n.anulado = 0 {$whereCuentaNomina}
 
             UNION ALL
 
@@ -108,7 +111,7 @@ class ModelFondos {
             LEFT JOIN metodo_pago m ON ps.id_metodo = m.id_metodo
             LEFT JOIN cuenta c ON ps.id_cuenta = c.id_cuenta
             LEFT JOIN banco b ON c.id_banco = b.id_banco
-            WHERE ps.id_cuenta IS NOT NULL {$whereCuentaServicio}
+            WHERE ps.id_cuenta IS NOT NULL AND ps.anulado = 0 {$whereCuentaServicio}
 
             ORDER BY fecha DESC
         ";

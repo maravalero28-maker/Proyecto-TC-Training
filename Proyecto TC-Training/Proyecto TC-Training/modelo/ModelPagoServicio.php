@@ -21,6 +21,12 @@ class ModelPagoServicio {
             if ($stmtCuenta->rowCount() === 0) {
                 $this->db->exec("ALTER TABLE pago_servicio ADD COLUMN id_cuenta INT(11) DEFAULT NULL");
             }
+
+            $stmtEstado = $this->db->prepare("SHOW COLUMNS FROM pago_servicio LIKE 'anulado'");
+            $stmtEstado->execute();
+            if ($stmtEstado->rowCount() === 0) {
+                $this->db->exec("ALTER TABLE pago_servicio ADD COLUMN anulado TINYINT(1) NOT NULL DEFAULT 0");
+            }
         } catch (PDOException $e) {
             $this->lastError = $e->getMessage();
         }
@@ -49,7 +55,7 @@ class ModelPagoServicio {
     }
 
     public function obtenerTodos($search = '', $year = null, $options = []) {
-        $sql = "SELECT ps.*, 
+        $sql = "SELECT ps.*,
                        m.nombre AS nombre_metodo, 
                        c.num_cuenta, 
                        b.nombre AS banco_nombre,
@@ -122,12 +128,17 @@ class ModelPagoServicio {
         }
     }
 
-    public function eliminar($id) {
-        $sql = "DELETE FROM pago_servicio WHERE id_pago_servicio = ?";
+    public function cambiarEstado($id, $anulado) {
+        if ($anulado !== 0 && $anulado !== 1 && $anulado !== '0' && $anulado !== '1') {
+            return false;
+        }
+
+        $sql = "UPDATE pago_servicio SET anulado = ? WHERE id_pago_servicio = ?";
         try {
             $stmt = $this->db->prepare($sql);
-            return $stmt->execute([$id]);
+            return $stmt->execute([(int) $anulado, $id]);
         } catch (PDOException $e) {
+            $this->lastError = $e->getMessage();
             return false;
         }
     }

@@ -56,7 +56,7 @@ class ModelPago {
     }
 
     public function obtenerTodos($filtro = 'todos', $year = null, $options = []) {
-        $sql = "SELECT p.id_pago, p.id_cliente, p.Monto, p.Fecha, p.id_metodo, p.id_cuenta,
+        $sql = "SELECT p.id_pago, p.id_cliente, p.Monto, p.Fecha, p.id_metodo, p.id_cuenta, p.anulado,
                        p.moneda, p.tasa, p.monto_usd,
                        m.nombre AS nombre_metodo,
                        CONCAT(c.Nombre, ' ', c.apellido) AS NombreCliente,
@@ -120,7 +120,7 @@ class ModelPago {
     }
 
     public function obtenerPorId($id) {
-        $sql = "SELECT p.id_pago, p.id_cliente, p.Monto, p.Fecha, p.id_metodo, p.id_cuenta,
+        $sql = "SELECT p.id_pago, p.id_cliente, p.Monto, p.Fecha, p.id_metodo, p.id_cuenta, p.anulado,
                        p.moneda, p.tasa, p.monto_usd,
                        CONCAT(c.Nombre, ' ', c.apellido) AS NombreCliente
                 FROM pagos p
@@ -149,12 +149,17 @@ class ModelPago {
         }
     }
 
-    public function eliminar($id_pago) {
-        $sql = "DELETE FROM pagos WHERE id_pago = ?";
+    public function cambiarEstado($id_pago, $anulado) {
+        if ($anulado !== 0 && $anulado !== 1 && $anulado !== '0' && $anulado !== '1') {
+            return false;
+        }
+
+        $sql = "UPDATE pagos SET anulado = ? WHERE id_pago = ?";
         try {
             $stmt = $this->db->prepare($sql);
-            return $stmt->execute([$id_pago]);
+            return $stmt->execute([(int) $anulado, $id_pago]);
         } catch (PDOException $e) {
+            $this->lastError = $e->getMessage();
             return false;
         }
     }
@@ -187,7 +192,7 @@ class ModelPago {
     }
 
     public function obtenerUltimoPagoPorCliente($id_cliente) {
-        $sql = "SELECT Fecha FROM pagos WHERE id_cliente = ? ORDER BY Fecha DESC LIMIT 1";
+        $sql = "SELECT Fecha FROM pagos WHERE id_cliente = ? AND anulado = 0 ORDER BY Fecha DESC LIMIT 1";
         try {
             $stmt = $this->db->prepare($sql);
             $stmt->execute([$id_cliente]);

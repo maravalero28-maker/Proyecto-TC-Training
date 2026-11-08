@@ -17,10 +17,11 @@ class ModelFondo {
     // Suma de montos por cuenta en una tabla de movimientos.
     // Devuelve [id_cuenta => total]; los movimientos sin cuenta (NULL o 0) van bajo la clave 'sin_cuenta'.
     // Cada tabla se consulta por separado: si una falla, las demás siguen sumando y el error queda en getLastError().
-    private function sumarPorCuenta($tabla, $columnaMonto) {
+    private function sumarPorCuenta($tabla, $columnaMonto, $condicion = '') {
         $totales = [];
         try {
-            $stmt = $this->db->query("SELECT id_cuenta, SUM({$columnaMonto}) AS total FROM {$tabla} GROUP BY id_cuenta");
+            $where = $condicion !== '' ? " WHERE {$condicion}" : '';
+            $stmt = $this->db->query("SELECT id_cuenta, SUM({$columnaMonto}) AS total FROM {$tabla}{$where} GROUP BY id_cuenta");
             foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $fila) {
                 $clave = empty($fila['id_cuenta']) ? 'sin_cuenta' : (int) $fila['id_cuenta'];
                 $totales[$clave] = ($totales[$clave] ?? 0) + floatval($fila['total']);
@@ -46,9 +47,9 @@ class ModelFondo {
             return [];
         }
 
-        $pagos = $this->sumarPorCuenta('pagos', 'Monto');
-        $nomina = $this->sumarPorCuenta('pago_nomina', 'monto');
-        $servicios = $this->sumarPorCuenta('pago_servicio', 'monto');
+        $pagos = $this->sumarPorCuenta('pagos', 'Monto', 'anulado = 0');
+        $nomina = $this->sumarPorCuenta('pago_nomina', 'monto', 'anulado = 0');
+        $servicios = $this->sumarPorCuenta('pago_servicio', 'monto', 'anulado = 0');
 
         foreach ($cuentas as $i => $cuenta) {
             $id = (int) $cuenta['id_cuenta'];
@@ -105,9 +106,9 @@ class ModelFondo {
         }
 
         $origenes = [
-            ['ingresos', "SELECT id_cuenta, Monto AS monto, Fecha AS fecha, monto_usd FROM pagos"],
-            ['egresos',  "SELECT id_cuenta, monto, fecha_pago AS fecha, NULL AS monto_usd FROM pago_nomina"],
-            ['egresos',  "SELECT id_cuenta, monto, fecha, NULL AS monto_usd FROM pago_servicio"]
+            ['ingresos', "SELECT id_cuenta, Monto AS monto, Fecha AS fecha, monto_usd FROM pagos WHERE anulado = 0"],
+            ['egresos',  "SELECT id_cuenta, monto, fecha_pago AS fecha, NULL AS monto_usd FROM pago_nomina WHERE anulado = 0"],
+            ['egresos',  "SELECT id_cuenta, monto, fecha, NULL AS monto_usd FROM pago_servicio WHERE anulado = 0"]
         ];
 
         foreach ($origenes as $origen) {
@@ -147,9 +148,9 @@ class ModelFondo {
 
     // Resumen de los movimientos registrados sin cuenta (efectivo / caja)
     public function obtenerResumenSinCuenta() {
-        $ingresos = $this->sumarPorCuenta('pagos', 'Monto')['sin_cuenta'] ?? 0;
-        $egresos = ($this->sumarPorCuenta('pago_nomina', 'monto')['sin_cuenta'] ?? 0)
-                 + ($this->sumarPorCuenta('pago_servicio', 'monto')['sin_cuenta'] ?? 0);
+        $ingresos = $this->sumarPorCuenta('pagos', 'Monto', 'anulado = 0')['sin_cuenta'] ?? 0;
+        $egresos = ($this->sumarPorCuenta('pago_nomina', 'monto', 'anulado = 0')['sin_cuenta'] ?? 0)
+                 + ($this->sumarPorCuenta('pago_servicio', 'monto', 'anulado = 0')['sin_cuenta'] ?? 0);
         return ['ingresos' => $ingresos, 'egresos' => $egresos, 'saldo' => $ingresos - $egresos];
     }
 
@@ -168,18 +169,18 @@ class ModelFondo {
     // Obtener transacciones unificadas con filtrado directo por tabla
     public function obtenerTransacciones($id_cuenta = 'todas') {
         $params = [];
-        $whereCliente = "";
-        $whereNomina = "";
-        $whereServicio = "";
+        $whereCliente = " WHERE p.anulado = 0 ";
+        $whereNomina = " WHERE n.anulado = 0 ";
+        $whereServicio = " WHERE ps.anulado = 0 ";
 
         if ($id_cuenta === 'sin_cuenta') {
-            $whereCliente = " WHERE (p.id_cuenta IS NULL OR p.id_cuenta = 0) ";
-            $whereNomina = " WHERE (n.id_cuenta IS NULL OR n.id_cuenta = 0) ";
-            $whereServicio = " WHERE (ps.id_cuenta IS NULL OR ps.id_cuenta = 0) ";
+            $whereCliente = " WHERE p.anulado = 0 AND (p.id_cuenta IS NULL OR p.id_cuenta = 0) ";
+            $whereNomina = " WHERE n.anulado = 0 AND (n.id_cuenta IS NULL OR n.id_cuenta = 0) ";
+            $whereServicio = " WHERE ps.anulado = 0 AND (ps.id_cuenta IS NULL OR ps.id_cuenta = 0) ";
         } elseif (!empty($id_cuenta) && $id_cuenta !== 'todas' && $id_cuenta !== 'all') {
-            $whereCliente = " WHERE p.id_cuenta = ? ";
-            $whereNomina = " WHERE n.id_cuenta = ? ";
-            $whereServicio = " WHERE ps.id_cuenta = ? ";
+            $whereCliente = " WHERE p.anulado = 0 AND p.id_cuenta = ? ";
+            $whereNomina = " WHERE n.anulado = 0 AND n.id_cuenta = ? ";
+            $whereServicio = " WHERE ps.anulado = 0 AND ps.id_cuenta = ? ";
             $params = [intval($id_cuenta), intval($id_cuenta), intval($id_cuenta)];
         }
 

@@ -21,6 +21,12 @@ class ModelNomina {
             if ($stmtCuenta->rowCount() === 0) {
                 $this->db->exec("ALTER TABLE pago_nomina ADD COLUMN id_cuenta INT(11) DEFAULT NULL");
             }
+
+            $stmtEstado = $this->db->prepare("SHOW COLUMNS FROM pago_nomina LIKE 'anulado'");
+            $stmtEstado->execute();
+            if ($stmtEstado->rowCount() === 0) {
+                $this->db->exec("ALTER TABLE pago_nomina ADD COLUMN anulado TINYINT(1) NOT NULL DEFAULT 0");
+            }
         } catch (PDOException $e) {
             $this->lastError = $e->getMessage();
         }
@@ -49,7 +55,7 @@ class ModelNomina {
     }
 
    public function obtenerTodos($search = '', $year = null, $options = []) {
-        $sql = "SELECT n.id_nomina, n.id_entrenador, n.monto, n.fecha_pago, n.concepto, n.id_metodo, n.id_cuenta,
+        $sql = "SELECT n.id_nomina, n.id_entrenador, n.monto, n.fecha_pago, n.concepto, n.id_metodo, n.id_cuenta, n.anulado,
                        m.nombre AS nombre_metodo,
                        CONCAT(e.nombre, ' ', e.apellido) AS NombreEntrenador, a.Usuario AS NombreAdmin
                 FROM pago_nomina n
@@ -98,7 +104,10 @@ class ModelNomina {
     }
 
     public function obtenerPorId($id) {
-        $sql = "SELECT n.*, CONCAT(e.nombre, ' ', e.apellido) AS NombreEntrenador FROM pago_nomina n INNER JOIN entrenador e ON n.id_entrenador = e.cedula WHERE n.id_nomina = ?";
+        $sql = "SELECT n.*, CONCAT(e.nombre, ' ', e.apellido) AS NombreEntrenador
+                FROM pago_nomina n
+                LEFT JOIN entrenador e ON n.id_entrenador = e.cedula
+                WHERE n.id_nomina = ?";
         try {
             $stmt = $this->db->prepare($sql);
             $stmt->execute([$id]);
@@ -122,12 +131,17 @@ class ModelNomina {
         }
     }
 
-    public function eliminar($id_nomina) {
-        $sql = "DELETE FROM pago_nomina WHERE id_nomina = ?";
+    public function cambiarEstado($id_nomina, $anulado) {
+        if ($anulado !== 0 && $anulado !== 1 && $anulado !== '0' && $anulado !== '1') {
+            return false;
+        }
+
+        $sql = "UPDATE pago_nomina SET anulado = ? WHERE id_nomina = ?";
         try {
             $stmt = $this->db->prepare($sql);
-            return $stmt->execute([$id_nomina]);
+            return $stmt->execute([(int) $anulado, $id_nomina]);
         } catch (PDOException $e) {
+            $this->lastError = $e->getMessage();
             return false;
         }
     }

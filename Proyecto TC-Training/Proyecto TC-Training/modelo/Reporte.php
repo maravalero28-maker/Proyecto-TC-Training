@@ -20,7 +20,7 @@ class Reporte {
                     JOIN cliente c ON p.id_cliente = c.id_cliente
                     JOIN metodo_pago mp ON p.id_metodo = mp.id_metodo
                     JOIN cuenta cu ON p.id_cuenta = cu.id_cuenta
-                    JOIN banco b ON cu.id_banco = b.id_banco WHERE 1=1";
+                    JOIN banco b ON cu.id_banco = b.id_banco WHERE p.anulado = 0";
         } elseif ($origen === 'nomina') {
             $sql = "SELECT n.id_nomina, e.cedula, e.nombre, n.monto,
                             mp.nombre AS metodo_pago, b.nombre AS banco_receptor, n.fecha_pago
@@ -28,14 +28,14 @@ class Reporte {
                     JOIN entrenador e ON n.id_entrenador = e.cedula
                     JOIN metodo_pago mp ON n.id_metodo = mp.id_metodo
                     JOIN cuenta cu ON n.id_cuenta = cu.id_cuenta
-                    JOIN banco b ON cu.id_banco = b.id_banco WHERE 1=1";
+                    JOIN banco b ON cu.id_banco = b.id_banco WHERE n.anulado = 0";
         } elseif ($origen === 'servicios') {
             $sql = "SELECT s.id_pago_servicio AS id_servicio, s.concepto, s.monto,
                             mp.nombre AS metodo_pago, b.nombre AS banco_receptor, s.fecha AS fecha_pago
                     FROM pago_servicio s
                     JOIN metodo_pago mp ON s.id_metodo = mp.id_metodo
                     JOIN cuenta cu ON s.id_cuenta = cu.id_cuenta
-                    JOIN banco b ON cu.id_banco = b.id_banco WHERE 1=1";
+                    JOIN banco b ON cu.id_banco = b.id_banco WHERE s.anulado = 0";
         } else {
             return [];
         }

@@ -87,7 +87,7 @@ class Cliente {
 
             $baseDate = new DateTime($cliente['fecha_inscripcion']);
             try {
-                $stmtPago = $this->db->prepare("SELECT Fecha FROM pagos WHERE id_cliente = ? ORDER BY Fecha DESC LIMIT 1");
+                $stmtPago = $this->db->prepare("SELECT Fecha FROM pagos WHERE id_cliente = ? AND anulado = 0 ORDER BY Fecha DESC LIMIT 1");
                 $stmtPago->execute([$cliente['id_cliente']]);
                 $ultimoPago = $stmtPago->fetch(PDO::FETCH_ASSOC);
                 if ($ultimoPago && !empty($ultimoPago['Fecha'])) {
@@ -168,7 +168,7 @@ class Cliente {
             $planDias = intval($cliente['plan_dias'] ?? 30);
 
             try {
-                $stmtPago = $this->db->prepare("SELECT Fecha FROM pagos WHERE id_cliente = ? ORDER BY Fecha DESC LIMIT 1");
+                $stmtPago = $this->db->prepare("SELECT Fecha FROM pagos WHERE id_cliente = ? AND anulado = 0 ORDER BY Fecha DESC LIMIT 1");
                 $stmtPago->execute([$cliente['id_cliente']]);
                 $ultimoPago = $stmtPago->fetch(PDO::FETCH_ASSOC);
                 if ($ultimoPago && !empty($ultimoPago['Fecha'])) {
