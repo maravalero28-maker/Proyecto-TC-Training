@@ -67,6 +67,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['btnnomina'])) {
     exit();
 }
 
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['btncambiarestadonomina'])) {
+    $id_nomina = intval($_POST['id_nomina'] ?? 0);
+    $nuevoEstado = $_POST['nuevo_estado'] ?? '';
+    $nominaActual = $objNomina->obtenerPorId($id_nomina);
+
+    if (!$nominaActual || !in_array($nuevoEstado, ['0', '1'], true)) {
+        header("Location: ../controlador/NominaController.php?msj=error");
+        exit();
+    }
+
+    if ($objNomina->cambiarEstado($id_nomina, $nuevoEstado)) {
+        header("Location: ../controlador/NominaController.php?msj=" . ($nuevoEstado === '1' ? 'inhabilitado' : 'habilitado'));
+        exit();
+    }
+
+    header("Location: ../controlador/NominaController.php?msj=error");
+    exit();
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['btnactualizarnomina'])) {
     $id_nomina = $_POST['id_nomina'] ?? 0;
     $id_entrenador = $_POST['id_entrenador'] ?? '';
@@ -89,15 +108,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['btnactualizarnomina']
         header("Location: ../controlador/NominaController.php?msj=error");
         exit();
     }
-}
-
-if (isset($_GET['action']) && $_GET['action'] === 'eliminar' && isset($_GET['id'])) {
-    if ($objNomina->eliminar(intval($_GET['id']))) {
-        header("Location: ../controlador/NominaController.php?msj=eliminado");
-        exit();
-    }
-    header("Location: ../controlador/NominaController.php?msj=error");
-    exit();
 }
 
 if (isset($_GET['action']) && $_GET['action'] === 'nuevo') {
@@ -131,8 +141,10 @@ if (isset($_GET['msj'])) {
         $showMessageCard = false;
     } elseif ($_GET['msj'] === 'actualizado') {
         $mensaje = '<article class="alert alert-success">Pago de nómina actualizado correctamente.</article>';
-    } elseif ($_GET['msj'] === 'eliminado') {
-        $mensaje = '<article class="alert alert-success">Pago de nómina eliminado correctamente.</article>';
+    } elseif ($_GET['msj'] === 'habilitado') {
+        $mensaje = '<article class="alert alert-success">Pago de nómina habilitado correctamente.</article>';
+    } elseif ($_GET['msj'] === 'inhabilitado') {
+        $mensaje = '<article class="alert alert-success">Pago de nómina inhabilitado correctamente. El registro se conservó.</article>';
     } elseif ($_GET['msj'] === 'error') {
         $mensaje = '<article class="alert alert-danger">Ocurrió un error al procesar la solicitud.</article>';
     }
@@ -148,7 +160,7 @@ $nominaMatrix = [];
 try {
     $sql = "SELECT id_entrenador, MONTH(fecha_pago) AS mes, SUM(monto) AS total, COUNT(id_nomina) AS count_payments FROM pago_nomina";
     $params = [];
-    $conds = [];
+    $conds = ["anulado = 0"];
     if (!empty($year)) {
         $conds[] = "YEAR(fecha_pago) = ?";
         $params[] = $year;

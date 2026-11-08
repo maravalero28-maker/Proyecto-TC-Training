@@ -117,6 +117,13 @@ try {
 
 $mensaje = '';
 $showMessageCard = true;
+if (isset($_GET['msj']) && $_GET['msj'] === 'habilitado') {
+    $mensaje = '<article class="alert alert-success">Pago habilitado correctamente.</article>';
+} elseif (isset($_GET['msj']) && $_GET['msj'] === 'inhabilitado') {
+    $mensaje = '<article class="alert alert-success">Pago inhabilitado correctamente. El registro se conservó.</article>';
+} elseif (isset($_GET['msj']) && $_GET['msj'] === 'error') {
+    $mensaje = '<article class="alert alert-danger">No se pudo procesar la operación.</article>';
+}
 $filtro = $_GET['filter'] ?? 'todos';
 $search = $_GET['q'] ?? ($_GET['filter'] ?? 'todos');
 $startDate = $_GET['start_date'] ?? '';
@@ -202,6 +209,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['btnpago'])) {
     exit();
 }
 
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['btncambiarestado'])) {
+    $id_pago = intval($_POST['id_pago'] ?? 0);
+    $nuevoEstado = $_POST['nuevo_estado'] ?? '';
+    $pagoActual = $objPago->obtenerPorId($id_pago);
+
+    if (!$pagoActual || !in_array($nuevoEstado, ['0', '1'], true)) {
+        header("Location: ../controlador/pagoscontrolador.php?msj=error");
+        exit();
+    }
+
+    if ($objPago->cambiarEstado($id_pago, intval($nuevoEstado))) {
+        header("Location: ../controlador/pagoscontrolador.php?msj=" . ($nuevoEstado === '1' ? 'inhabilitado' : 'habilitado'));
+        exit();
+    }
+
+    header("Location: ../controlador/pagoscontrolador.php?msj=error");
+    exit();
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['btnactualizarpago'])) {
     $id_pago = $_POST['id_pago'] ?? 0;
     $id_cliente = $_POST['id_cliente'] ?? 0;
@@ -256,6 +282,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['btnactualizarpago']))
             $fechaValor = $fecha;
             $idMetodoValor = $id_metodo;
             $idCuentaValor = $id_cuenta;
+            $anuladoValor = (int) ($pagoActual['anulado'] ?? 0);
             include "../vista/editar_pago.php";
             exit();
         }
@@ -270,18 +297,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['btnactualizarpago']))
         }
         $objCliente->actualizarSolvencia($id_cliente, 'Solvente');
         header("Location: ../controlador/pagoscontrolador.php?msj=actualizado");
-        exit();
-    } else {
-        header("Location: ../controlador/pagoscontrolador.php?msj=error");
-        exit();
-    }
-}
-
-if (isset($_GET['action']) && $_GET['action'] === 'eliminar' && isset($_GET['id'])) {
-    $id_pago = intval($_GET['id']);
-    $deleted = $objPago->eliminar($id_pago);
-    if ($deleted) {
-        header("Location: ../controlador/pagoscontrolador.php?msj=eliminado");
         exit();
     } else {
         header("Location: ../controlador/pagoscontrolador.php?msj=error");
@@ -315,6 +330,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'editar' && isset($_GET['id'])
     $fechaValor = $pago['Fecha'] ?? $pago['fecha'];
     $idMetodoValor = $pago['id_metodo'] ?? '';
     $idCuentaValor = $pago['id_cuenta'] ?? '';
+    $anuladoValor = (int) $pago['anulado'];
     $plan_idValor = '';
     include "../vista/editar_pago.php";
     exit();

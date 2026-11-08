@@ -62,6 +62,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['btnservicio'])) {
     exit();
 }
 
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['btncambiarestadoservicio'])) {
+    $id = intval($_POST['id_pago_servicio'] ?? 0);
+    $nuevoEstado = $_POST['nuevo_estado'] ?? '';
+    $servicioActual = $objServicio->obtenerPorId($id);
+
+    if (!$servicioActual || !in_array($nuevoEstado, ['0', '1'], true)) {
+        header("Location: ../controlador/PagoServicioController.php?msj=error");
+        exit();
+    }
+
+    if ($objServicio->cambiarEstado($id, $nuevoEstado)) {
+        header("Location: ../controlador/PagoServicioController.php?msj=" . ($nuevoEstado === '1' ? 'inhabilitado' : 'habilitado'));
+        exit();
+    }
+
+    header("Location: ../controlador/PagoServicioController.php?msj=error");
+    exit();
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['btnactualizarservicio'])) {
     $id = $_POST['id_pago_servicio'] ?? 0;
     $rawMonto = trim($_POST['monto'] ?? '');
@@ -83,15 +102,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['btnactualizarservicio
         header("Location: ../controlador/PagoServicioController.php?msj=error");
         exit();
     }
-}
-
-if (isset($_GET['action']) && $_GET['action'] === 'eliminar' && isset($_GET['id'])) {
-    if ($objServicio->eliminar(intval($_GET['id']))) {
-        header("Location: ../controlador/PagoServicioController.php?msj=eliminado");
-        exit();
-    }
-    header("Location: ../controlador/PagoServicioController.php?msj=error");
-    exit();
 }
 
 if (isset($_GET['action']) && $_GET['action'] === 'nuevo') {
@@ -122,8 +132,10 @@ if (isset($_GET['msj'])) {
         $showMessageCard = false;
     } elseif ($_GET['msj'] === 'actualizado') {
         $mensaje = '<article class="alert alert-success">Pago de servicio actualizado correctamente.</article>';
-    } elseif ($_GET['msj'] === 'eliminado') {
-        $mensaje = '<article class="alert alert-success">Pago de servicio eliminado correctamente.</article>';
+    } elseif ($_GET['msj'] === 'habilitado') {
+        $mensaje = '<article class="alert alert-success">Pago de servicio habilitado correctamente.</article>';
+    } elseif ($_GET['msj'] === 'inhabilitado') {
+        $mensaje = '<article class="alert alert-success">Pago de servicio inhabilitado correctamente. El registro se conservó.</article>';
     } elseif ($_GET['msj'] === 'error') {
         $mensaje = '<article class="alert alert-danger">Ocurrió un error al procesar la solicitud.</article>';
     }
@@ -136,10 +148,10 @@ $pagosServicios = $objServicio->obtenerTodos($search, $year, $filters);
 // Matriz de servicios por mes del año actual
 $serviciosMatrix = [];
 try {
-    $sql = "SELECT MONTH(fecha) AS mes, SUM(monto) AS total, COUNT(id_pago_servicio) AS count_payments FROM pago_servicio";
+    $sql = "SELECT MONTH(fecha) AS mes, SUM(monto) AS total, COUNT(id_pago_servicio) AS count_payments FROM pago_servicio WHERE anulado = 0";
     $params = [];
     if (!empty($year)) {
-        $sql .= " WHERE YEAR(fecha) = ?";
+        $sql .= " AND YEAR(fecha) = ?";
         $params[] = $year;
     }
     $sql .= " GROUP BY MONTH(fecha)";

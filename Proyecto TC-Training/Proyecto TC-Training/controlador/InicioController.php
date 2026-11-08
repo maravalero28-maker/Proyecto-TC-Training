@@ -61,12 +61,12 @@ switch ($ingresosPeriodo) {
         break;
 }
 
-$stmtIngresos = $db->prepare("SELECT COALESCE(SUM(COALESCE(monto_usd, Monto)), 0) AS total FROM pagos WHERE Fecha BETWEEN ? AND ?");
+$stmtIngresos = $db->prepare("SELECT COALESCE(SUM(COALESCE(monto_usd, Monto)), 0) AS total FROM pagos WHERE anulado = 0 AND Fecha BETWEEN ? AND ?");
 $stmtIngresos->execute([$inicioPeriodo->format('Y-m-d'), $finPeriodo->format('Y-m-d')]);
 $ingresosEstimados = (float) $stmtIngresos->fetchColumn();
 
 
-$stmtPagos = $db->prepare("SELECT p.id_pago, p.id_cliente, COALESCE(p.monto_usd, p.Monto) AS Monto, p.Fecha, m.nombre AS MetodoPago, CONCAT(c.Nombre, ' ', c.apellido) AS NombreCliente, c.Plan, c.Solvencia FROM pagos p INNER JOIN cliente c ON p.id_cliente = c.id_cliente LEFT JOIN metodo_pago m ON p.id_metodo = m.id_metodo WHERE p.Fecha BETWEEN ? AND ? ORDER BY p.Fecha ASC");
+$stmtPagos = $db->prepare("SELECT p.id_pago, p.id_cliente, COALESCE(p.monto_usd, p.Monto) AS Monto, p.Fecha, m.nombre AS MetodoPago, CONCAT(c.Nombre, ' ', c.apellido) AS NombreCliente, c.Plan, c.Solvencia FROM pagos p INNER JOIN cliente c ON p.id_cliente = c.id_cliente LEFT JOIN metodo_pago m ON p.id_metodo = m.id_metodo WHERE p.anulado = 0 AND p.Fecha BETWEEN ? AND ? ORDER BY p.Fecha ASC");
 $stmtPagos->execute([$inicioPeriodo->format('Y-m-d'), $finPeriodo->format('Y-m-d')]);
 $pagosPeriodo = $stmtPagos->fetchAll(PDO::FETCH_ASSOC);
 
