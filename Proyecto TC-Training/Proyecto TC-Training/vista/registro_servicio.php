@@ -36,7 +36,7 @@ if (!isset($mensaje) && !isset($montoValor)) {
                 <fieldset class="form-group">
                     <label for="monto" class="form-label">Monto</label>
                     <section class="input-inline">
-                        <span class="currency-symbol">$</span>
+                        
                         <input type="number" step="0.01" min="0.01" id="monto" name="monto" class="form-control flex-1" value="<?php echo htmlspecialchars($montoValor ?? ''); ?>" required>
                     </section>
                     <small class="text-muted">Escribe el monto en la moneda de la cuenta de origen (BS o USD). Si es en BS se convierte a dólares con la tasa del día, y la cuenta debe tener saldo suficiente.</small>

@@ -55,7 +55,7 @@
                 <fieldset class="form-group">
                     <label for="monto" class="form-label">Monto</label>
                     <section class="input-inline">
-                        <span class="currency-symbol">$</span>
+                        
                         <input type="number" step="0.01" min="0.01" id="monto" name="monto" class="form-control flex-1" placeholder="Monto" 
                                value="<?php echo $montoValor ?? ''; ?>" required>
                     </section>
@@ -78,7 +78,7 @@
                 <fieldset class="form-group">
                     <label for="id_cuenta" class="form-label">Cuenta / Banco Receptora</label>
                     <select id="id_cuenta" name="id_cuenta" class="form-control">
-                        <option value="">Seleccione cuenta (Opcional)</option>
+                        <option value="">Seleccione cuenta (Obligatorio)</option>
                         <?php foreach($cuentasList as $cuenta): ?>
                             <option value="<?php echo $cuenta['id_cuenta']; ?>" <?php echo (isset($idCuentaValor) && $idCuentaValor == $cuenta['id_cuenta']) ? 'selected' : ''; ?>>
                                 <?php echo htmlspecialchars($cuenta['banco_nombre'] . ' - ' . $cuenta['num_cuenta'] . ' (' . $cuenta['tipo_moneda'] . ')'); ?>
