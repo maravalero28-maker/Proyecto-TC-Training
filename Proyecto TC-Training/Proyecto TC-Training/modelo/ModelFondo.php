@@ -34,7 +34,7 @@ class ModelFondo {
 
     // Obtener todas las cuentas con sus ingresos, egresos y saldo calculado (ingresos - egresos)
     public function obtenerTodos() {
-        $sql = "SELECT c.id_cuenta, c.num_cuenta, c.tipo_moneda, b.nombre AS banco_nombre
+        $sql = "SELECT c.id_cuenta, c.num_cuenta, c.tipo_moneda, c.saldo_inicial, b.nombre AS banco_nombre
                 FROM cuenta c
                 INNER JOIN banco b ON c.id_banco = b.id_banco
                 ORDER BY c.id_cuenta ASC";
@@ -55,9 +55,11 @@ class ModelFondo {
             $id = (int) $cuenta['id_cuenta'];
             $ingresos = $pagos[$id] ?? 0;
             $egresos = ($nomina[$id] ?? 0) + ($servicios[$id] ?? 0);
+            $inicial = floatval($cuenta['saldo_inicial'] ?? 0);
+            $cuentas[$i]['saldo_inicial'] = $inicial;
             $cuentas[$i]['ingresos'] = $ingresos;
             $cuentas[$i]['egresos'] = $egresos;
-            $cuentas[$i]['saldo'] = $ingresos - $egresos;
+            $cuentas[$i]['saldo'] = $inicial + $ingresos - $egresos;
         }
         return $cuentas;
     }
@@ -91,15 +93,20 @@ class ModelFondo {
     // Totales en dólares: general, sin cuenta (efectivo) y por cuenta.
     // Los pagos de clientes usan el equivalente guardado al registrarlos; nómina y servicios se convierten con la tasa de su fecha.
     public function obtenerTotalesUSD() {
-        $vacio = ['ingresos' => 0, 'egresos' => 0, 'saldo' => 0];
+        $vacio = ['inicial' => 0, 'ingresos' => 0, 'egresos' => 0, 'saldo' => 0];
         $res = ['general' => $vacio, 'sin_cuenta' => $vacio, 'cuentas' => []];
         $tasas = $this->cargarTasas();
 
         $monedas = [];
         try {
-            $stmt = $this->db->query("SELECT id_cuenta, tipo_moneda FROM cuenta");
+            $stmt = $this->db->query("SELECT id_cuenta, tipo_moneda, saldo_inicial_usd FROM cuenta");
             foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $c) {
-                $monedas[(int) $c['id_cuenta']] = $c['tipo_moneda'];
+                $idCuenta = (int) $c['id_cuenta'];
+                $monedas[$idCuenta] = $c['tipo_moneda'];
+                $inicialUsd = floatval($c['saldo_inicial_usd'] ?? 0);
+                $res['cuentas'][$idCuenta] = $vacio;
+                $res['cuentas'][$idCuenta]['inicial'] = $inicialUsd;
+                $res['general']['inicial'] += $inicialUsd;
             }
         } catch (PDOException $e) {
             $this->lastError = $e->getMessage();
@@ -107,8 +114,8 @@ class ModelFondo {
 
         $origenes = [
             ['ingresos', "SELECT id_cuenta, Monto AS monto, Fecha AS fecha, monto_usd FROM pagos WHERE anulado = 0"],
-            ['egresos',  "SELECT id_cuenta, monto, fecha_pago AS fecha, NULL AS monto_usd FROM pago_nomina WHERE anulado = 0"],
-            ['egresos',  "SELECT id_cuenta, monto, fecha, NULL AS monto_usd FROM pago_servicio WHERE anulado = 0"]
+            ['egresos',  "SELECT id_cuenta, monto, fecha_pago AS fecha, monto_usd FROM pago_nomina WHERE anulado = 0"],
+            ['egresos',  "SELECT id_cuenta, monto, fecha, monto_usd FROM pago_servicio WHERE anulado = 0"]
         ];
 
         foreach ($origenes as $origen) {
@@ -138,10 +145,10 @@ class ModelFondo {
             }
         }
 
-        $res['general']['saldo'] = $res['general']['ingresos'] - $res['general']['egresos'];
+        $res['general']['saldo'] = $res['general']['inicial'] + $res['general']['ingresos'] - $res['general']['egresos'];
         $res['sin_cuenta']['saldo'] = $res['sin_cuenta']['ingresos'] - $res['sin_cuenta']['egresos'];
         foreach ($res['cuentas'] as $id => $c) {
-            $res['cuentas'][$id]['saldo'] = $c['ingresos'] - $c['egresos'];
+            $res['cuentas'][$id]['saldo'] = $c['inicial'] + $c['ingresos'] - $c['egresos'];
         }
         return $res;
     }
@@ -152,6 +159,105 @@ class ModelFondo {
         $egresos = ($this->sumarPorCuenta('pago_nomina', 'monto', 'anulado = 0')['sin_cuenta'] ?? 0)
                  + ($this->sumarPorCuenta('pago_servicio', 'monto', 'anulado = 0')['sin_cuenta'] ?? 0);
         return ['ingresos' => $ingresos, 'egresos' => $egresos, 'saldo' => $ingresos - $egresos];
+    }
+
+    // Saldo disponible de una cuenta en su propia moneda: saldo inicial + ingresos - egresos (sin contar pagos inhabilitados).
+    // Al editar un movimiento se puede excluir (tabla e id) para no contarlo dos veces. Devuelve null si falla.
+    public function obtenerSaldoCuenta($id_cuenta, $excluirTabla = null, $excluirId = null) {
+        try {
+            $stmt = $this->db->prepare("SELECT IFNULL(saldo_inicial, 0) FROM cuenta WHERE id_cuenta = ?");
+            $stmt->execute([$id_cuenta]);
+            $saldo = floatval($stmt->fetchColumn());
+
+            $stmt = $this->db->prepare("SELECT IFNULL(SUM(Monto), 0) FROM pagos WHERE id_cuenta = ? AND anulado = 0");
+            $stmt->execute([$id_cuenta]);
+            $saldo += floatval($stmt->fetchColumn());
+
+            $egresos = [['pago_nomina', 'id_nomina'], ['pago_servicio', 'id_pago_servicio']];
+            foreach ($egresos as $e) {
+                $sql = "SELECT IFNULL(SUM(monto), 0) FROM {$e[0]} WHERE id_cuenta = ? AND anulado = 0";
+                $params = [$id_cuenta];
+                if ($excluirTabla === $e[0] && !empty($excluirId)) {
+                    $sql .= " AND {$e[1]} <> ?";
+                    $params[] = $excluirId;
+                }
+                $stmt = $this->db->prepare($sql);
+                $stmt->execute($params);
+                $saldo -= floatval($stmt->fetchColumn());
+            }
+            return $saldo;
+        } catch (PDOException $e) {
+            $this->lastError = $e->getMessage();
+            return null;
+        }
+    }
+
+    // Revisa que la cuenta tenga saldo suficiente para un egreso (monto en la moneda de la cuenta).
+    // Devuelve un texto de error, o vacío si alcanza.
+    public function verificarSaldoEgreso($cuentasList, $id_cuenta, $monto, $excluirTabla = null, $excluirId = null) {
+        $cuenta = null;
+        foreach ($cuentasList as $c) {
+            if ($c['id_cuenta'] == $id_cuenta) {
+                $cuenta = $c;
+                break;
+            }
+        }
+        if (!$cuenta) {
+            return 'La cuenta seleccionada no existe.';
+        }
+
+        $saldo = $this->obtenerSaldoCuenta($id_cuenta, $excluirTabla, $excluirId);
+        if ($saldo === null) {
+            return 'No se pudo verificar el saldo de la cuenta.';
+        }
+
+        if (round($monto, 2) > round($saldo, 2)) {
+            $prefijo = (strtoupper(trim($cuenta['tipo_moneda'])) === 'BS') ? 'Bs ' : '$';
+            return 'Saldo insuficiente en ' . $cuenta['banco_nombre'] . ' - ' . $cuenta['num_cuenta'] . ' (' . $cuenta['tipo_moneda'] . '): disponible '
+                 . $prefijo . number_format($saldo, 2, ',', '.') . ' y el pago es de ' . $prefijo . number_format($monto, 2, ',', '.') . '.';
+        }
+        return '';
+    }
+
+    // Valida un pago que sale de una cuenta (nómina o servicios): cuenta obligatoria, conversión a dólares y saldo suficiente.
+    // Devuelve ['error' => texto o vacío, 'moneda' => ..., 'tasa' => ..., 'monto_usd' => ...]
+    public function validarEgreso($cuentasList, $id_cuenta, $monto, $fecha, $excluirTabla = null, $excluirId = null) {
+        $res = ['error' => '', 'moneda' => null, 'tasa' => null, 'monto_usd' => null];
+
+        if (empty($id_cuenta)) {
+            $res['error'] = 'Selecciona la cuenta desde la que sale el pago.';
+            return $res;
+        }
+
+        $modelTasa = new ModelTasa($this->db);
+        $conv = $modelTasa->convertirMonto($cuentasList, $id_cuenta, $monto, $fecha);
+        if ($conv['error'] !== '') {
+            $res['error'] = $conv['error'];
+            return $res;
+        }
+
+        $errorSaldo = $this->verificarSaldoEgreso($cuentasList, $id_cuenta, $monto, $excluirTabla, $excluirId);
+        if ($errorSaldo !== '') {
+            $res['error'] = $errorSaldo;
+            return $res;
+        }
+
+        $res['moneda'] = $conv['moneda'];
+        $res['tasa'] = $conv['tasa'];
+        $res['monto_usd'] = $conv['monto_usd'];
+        return $res;
+    }
+
+    // Registrar una cuenta nueva con su saldo inicial (en su moneda y su equivalente en dólares)
+    public function registrarCuenta($id_banco, $num_cuenta, $tipo_moneda, $saldo_inicial = 0, $saldo_inicial_usd = 0) {
+        $sql = "INSERT INTO cuenta (id_banco, num_cuenta, tipo_moneda, saldo, saldo_inicial, saldo_inicial_usd) VALUES (?, ?, ?, 0, ?, ?)";
+        try {
+            $stmt = $this->db->prepare($sql);
+            return $stmt->execute([$id_banco, $num_cuenta, $tipo_moneda, $saldo_inicial, $saldo_inicial_usd]);
+        } catch (PDOException $e) {
+            $this->lastError = $e->getMessage();
+            return false;
+        }
     }
 
     // Registrar nuevo fondo en la tabla cuenta
@@ -211,8 +317,8 @@ class ModelFondo {
                 'egreso_nomina' AS tipo_movimiento,
                 n.id_nomina AS id_referencia,
                 n.monto AS monto,
-                NULL AS tasa,
-                NULL AS monto_usd,
+                n.tasa AS tasa,
+                n.monto_usd AS monto_usd,
                 n.fecha_pago AS fecha,
                 CONCAT('Nómina: ', IFNULL(CONCAT(e.nombre, ' ', e.apellido), n.concepto)) AS concepto,
                 n.id_cuenta AS id_cuenta,
@@ -233,8 +339,8 @@ class ModelFondo {
                 'egreso_servicio' AS tipo_movimiento,
                 ps.id_pago_servicio AS id_referencia,
                 ps.monto AS monto,
-                NULL AS tasa,
-                NULL AS monto_usd,
+                ps.tasa AS tasa,
+                ps.monto_usd AS monto_usd,
                 ps.fecha AS fecha,
                 CONCAT('Servicio/Gasto: ', ps.concepto) AS concepto,
                 ps.id_cuenta AS id_cuenta,

@@ -10,7 +10,7 @@ class ModelTasa {
         self::asegurarEsquema($db_conn);
     }
 
-    // Crea la tabla de tasas y agrega a pagos las columnas de conversión si faltan
+    // Crea la tabla de tasas y agrega las columnas de conversión, de estado (anulado) y de saldo inicial si faltan
     public static function asegurarEsquema($db) {
         if (self::$esquemaListo) {
             return;
@@ -24,33 +24,73 @@ class ModelTasa {
                 PRIMARY KEY (id_tasa),
                 UNIQUE KEY uq_tasa_fecha (fecha)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci");
-
-            $columnas = [
-                'moneda'    => "VARCHAR(3) DEFAULT NULL",
-                'tasa'      => "DECIMAL(18,4) DEFAULT NULL",
-                'monto_usd' => "DECIMAL(12,2) DEFAULT NULL",
-                'anulado'   => "TINYINT(1) NOT NULL DEFAULT 0"
-            ];
-            foreach ($columnas as $nombre => $definicion) {
-                $stmt = $db->query("SHOW COLUMNS FROM pagos LIKE '{$nombre}'");
-                if ($stmt->rowCount() === 0) {
-                    $db->exec("ALTER TABLE pagos ADD COLUMN {$nombre} {$definicion}");
-                }
-            }
-
-            foreach (['pago_nomina', 'pago_servicio'] as $tabla) {
-                $stmt = $db->query("SHOW COLUMNS FROM {$tabla} LIKE 'anulado'");
-                if ($stmt->rowCount() === 0) {
-                    $db->exec("ALTER TABLE {$tabla} ADD COLUMN anulado TINYINT(1) NOT NULL DEFAULT 0");
-                }
-            }
-            self::$esquemaListo = true;
         } catch (PDOException $e) {
         }
+
+        $movimiento = [
+            'moneda'    => "VARCHAR(3) DEFAULT NULL",
+            'tasa'      => "DECIMAL(18,4) DEFAULT NULL",
+            'monto_usd' => "DECIMAL(12,2) DEFAULT NULL",
+            'anulado'   => "TINYINT(1) NOT NULL DEFAULT 0"
+        ];
+        $columnasPorTabla = [
+            'pagos'         => $movimiento,
+            'pago_nomina'   => $movimiento,
+            'pago_servicio' => $movimiento,
+            'cuenta'        => [
+                'saldo_inicial'     => "DECIMAL(12,2) NOT NULL DEFAULT 0",
+                'saldo_inicial_usd' => "DECIMAL(12,2) NOT NULL DEFAULT 0"
+            ]
+        ];
+        foreach ($columnasPorTabla as $tabla => $columnas) {
+            try {
+                if ($db->query("SHOW TABLES LIKE '{$tabla}'")->rowCount() === 0) {
+                    continue;
+                }
+                foreach ($columnas as $nombre => $definicion) {
+                    $stmt = $db->query("SHOW COLUMNS FROM {$tabla} LIKE '{$nombre}'");
+                    if ($stmt->rowCount() === 0) {
+                        $db->exec("ALTER TABLE {$tabla} ADD COLUMN {$nombre} {$definicion}");
+                    }
+                }
+            } catch (PDOException $e) {
+            }
+        }
+        self::$esquemaListo = true;
     }
 
     public function getLastError() {
         return $this->lastError;
+    }
+
+    // Convierte un monto (escrito en la moneda de la cuenta) a dólares. Sin cuenta se toma como USD.
+    // Para cuentas en BS exige la tasa registrada exactamente para esa fecha.
+    // Devuelve ['moneda' => ..., 'tasa' => ..., 'monto_usd' => ..., 'error' => texto o vacío]
+    public function convertirMonto($cuentasList, $id_cuenta, $monto, $fecha) {
+        $moneda = 'USD';
+        if (!empty($id_cuenta)) {
+            foreach ($cuentasList as $c) {
+                if ($c['id_cuenta'] == $id_cuenta) {
+                    $moneda = strtoupper(trim($c['tipo_moneda']));
+                    break;
+                }
+            }
+        }
+
+        $conv = ['moneda' => ($moneda === 'BS') ? 'BS' : 'USD', 'tasa' => null, 'monto_usd' => round($monto, 2), 'error' => ''];
+        if ($moneda !== 'BS') {
+            return $conv;
+        }
+
+        $tasa = $this->obtenerExacta($fecha);
+        if (!$tasa) {
+            $conv['error'] = 'No hay una tasa registrada para el ' . date('d/m/Y', strtotime($fecha)) . '. Regístrala en Fondos > Tasa del Día para poder registrar pagos en bolívares.';
+            return $conv;
+        }
+
+        $conv['tasa'] = $tasa;
+        $conv['monto_usd'] = round($monto / $tasa, 2);
+        return $conv;
     }
 
     // Tasa registrada exactamente para esa fecha (o null)

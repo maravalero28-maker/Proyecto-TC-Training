@@ -22,7 +22,7 @@ class Reporte {
                     JOIN cuenta cu ON p.id_cuenta = cu.id_cuenta
                     JOIN banco b ON cu.id_banco = b.id_banco WHERE p.anulado = 0";
         } elseif ($origen === 'nomina') {
-            $sql = "SELECT n.id_nomina, e.cedula, e.nombre, n.monto,
+            $sql = "SELECT n.id_nomina, e.cedula, e.nombre, COALESCE(n.monto_usd, n.monto) AS monto,
                             mp.nombre AS metodo_pago, b.nombre AS banco_receptor, n.fecha_pago
                     FROM pago_nomina n
                     JOIN entrenador e ON n.id_entrenador = e.cedula
@@ -30,7 +30,7 @@ class Reporte {
                     JOIN cuenta cu ON n.id_cuenta = cu.id_cuenta
                     JOIN banco b ON cu.id_banco = b.id_banco WHERE n.anulado = 0";
         } elseif ($origen === 'servicios') {
-            $sql = "SELECT s.id_pago_servicio AS id_servicio, s.concepto, s.monto,
+            $sql = "SELECT s.id_pago_servicio AS id_servicio, s.concepto, COALESCE(s.monto_usd, s.monto) AS monto,
                             mp.nombre AS metodo_pago, b.nombre AS banco_receptor, s.fecha AS fecha_pago
                     FROM pago_servicio s
                     JOIN metodo_pago mp ON s.id_metodo = mp.id_metodo

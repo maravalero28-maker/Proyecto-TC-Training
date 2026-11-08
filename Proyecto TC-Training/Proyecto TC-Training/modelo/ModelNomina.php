@@ -1,4 +1,6 @@
 <?php
+require_once __DIR__ . '/ModelTasa.php';
+
 class ModelNomina {
     private $db;
     private $lastError = null;
@@ -6,6 +8,7 @@ class ModelNomina {
     public function __construct($db_conn) {
         $this->db = $db_conn;
         $this->asegurarTabla();
+        ModelTasa::asegurarEsquema($this->db);
     }
 
     private function asegurarTabla() {
@@ -36,17 +39,17 @@ class ModelNomina {
         return $this->lastError;
     }
 
-    public function registrar($id_entrenador, $id_admin, $monto, $fecha_pago, $concepto, $id_metodo = null, $id_cuenta = null) {
+    public function registrar($id_entrenador, $id_admin, $monto, $fecha_pago, $concepto, $id_metodo = null, $id_cuenta = null, $moneda = null, $tasa = null, $monto_usd = null) {
         if (empty($id_entrenador) || empty($monto) || empty($fecha_pago)) {
             return "warning";
         }
         $id_metodo = !empty($id_metodo) ? intval($id_metodo) : null;
         $id_cuenta = !empty($id_cuenta) ? intval($id_cuenta) : null;
 
-        $sql = "INSERT INTO pago_nomina (id_entrenador, id_admin, monto, fecha_pago, concepto, id_metodo, id_cuenta) VALUES (?, ?, ?, ?, ?, ?, ?)";
+        $sql = "INSERT INTO pago_nomina (id_entrenador, id_admin, monto, fecha_pago, concepto, id_metodo, id_cuenta, moneda, tasa, monto_usd) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         try {
             $stmt = $this->db->prepare($sql);
-            $stmt->execute([$id_entrenador, $id_admin, $monto, $fecha_pago, $concepto, $id_metodo, $id_cuenta]);
+            $stmt->execute([$id_entrenador, $id_admin, $monto, $fecha_pago, $concepto, $id_metodo, $id_cuenta, $moneda, $tasa, $monto_usd]);
             return "success";
         } catch (PDOException $e) {
             $this->lastError = $e->getMessage();
@@ -56,12 +59,16 @@ class ModelNomina {
 
    public function obtenerTodos($search = '', $year = null, $options = []) {
         $sql = "SELECT n.id_nomina, n.id_entrenador, n.monto, n.fecha_pago, n.concepto, n.id_metodo, n.id_cuenta, n.anulado,
+                       n.moneda, n.tasa, n.monto_usd,
+                       cu.num_cuenta, cu.tipo_moneda AS moneda_cuenta, b.nombre AS banco_nombre,
                        m.nombre AS nombre_metodo,
                        CONCAT(e.nombre, ' ', e.apellido) AS NombreEntrenador, a.Usuario AS NombreAdmin
                 FROM pago_nomina n
                 LEFT JOIN entrenador e ON n.id_entrenador = e.cedula
                 LEFT JOIN administrador a ON n.id_admin = a.id_admin
-                LEFT JOIN metodo_pago m ON n.id_metodo = m.id_metodo";
+                LEFT JOIN metodo_pago m ON n.id_metodo = m.id_metodo
+                LEFT JOIN cuenta cu ON n.id_cuenta = cu.id_cuenta
+                LEFT JOIN banco b ON cu.id_banco = b.id_banco";
         $params = [];
         $conds = [];
 
@@ -117,14 +124,14 @@ class ModelNomina {
         }
     }
 
-    public function actualizar($id_nomina, $id_entrenador, $monto, $fecha_pago, $concepto, $id_metodo = null, $id_cuenta = null) {
+    public function actualizar($id_nomina, $id_entrenador, $monto, $fecha_pago, $concepto, $id_metodo = null, $id_cuenta = null, $moneda = null, $tasa = null, $monto_usd = null) {
         $id_metodo = !empty($id_metodo) ? intval($id_metodo) : null;
         $id_cuenta = !empty($id_cuenta) ? intval($id_cuenta) : null;
 
-        $sql = "UPDATE pago_nomina SET id_entrenador = ?, monto = ?, fecha_pago = ?, concepto = ?, id_metodo = ?, id_cuenta = ? WHERE id_nomina = ?";
+        $sql = "UPDATE pago_nomina SET id_entrenador = ?, monto = ?, fecha_pago = ?, concepto = ?, id_metodo = ?, id_cuenta = ?, moneda = ?, tasa = ?, monto_usd = ? WHERE id_nomina = ?";
         try {
             $stmt = $this->db->prepare($sql);
-            return $stmt->execute([$id_entrenador, $monto, $fecha_pago, $concepto, $id_metodo, $id_cuenta, $id_nomina]);
+            return $stmt->execute([$id_entrenador, $monto, $fecha_pago, $concepto, $id_metodo, $id_cuenta, $moneda, $tasa, $monto_usd, $id_nomina]);
         } catch (PDOException $e) {
             $this->lastError = $e->getMessage();
             return false;

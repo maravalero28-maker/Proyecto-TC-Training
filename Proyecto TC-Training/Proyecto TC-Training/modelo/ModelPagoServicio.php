@@ -1,4 +1,6 @@
 <?php
+require_once __DIR__ . '/ModelTasa.php';
+
 class ModelPagoServicio {
     private $db;
     private $lastError = null;
@@ -6,6 +8,7 @@ class ModelPagoServicio {
     public function __construct($db_conn) {
         $this->db = $db_conn;
         $this->asegurarTabla();
+        ModelTasa::asegurarEsquema($this->db);
     }
 
     private function asegurarTabla() {
@@ -36,17 +39,17 @@ class ModelPagoServicio {
         return $this->lastError;
     }
 
-    public function registrar($monto, $concepto, $id_metodo, $id_cuenta, $fecha, $id_admin) {
+    public function registrar($monto, $concepto, $id_metodo, $id_cuenta, $fecha, $id_admin, $moneda = null, $tasa = null, $monto_usd = null) {
         if (empty($monto) || empty($concepto) || empty($fecha)) {
             return "warning";
         }
         $id_metodo = !empty($id_metodo) ? intval($id_metodo) : null;
         $id_cuenta = !empty($id_cuenta) ? intval($id_cuenta) : null;
 
-        $sql = "INSERT INTO pago_servicio (monto, concepto, id_metodo, id_cuenta, fecha, id_admin) VALUES (?, ?, ?, ?, ?, ?)";
+        $sql = "INSERT INTO pago_servicio (monto, concepto, id_metodo, id_cuenta, fecha, id_admin, moneda, tasa, monto_usd) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
         try {
             $stmt = $this->db->prepare($sql);
-            $stmt->execute([$monto, $concepto, $id_metodo, $id_cuenta, $fecha, $id_admin]);
+            $stmt->execute([$monto, $concepto, $id_metodo, $id_cuenta, $fecha, $id_admin, $moneda, $tasa, $monto_usd]);
             return "success";
         } catch (PDOException $e) {
             $this->lastError = $e->getMessage();
@@ -58,6 +61,7 @@ class ModelPagoServicio {
         $sql = "SELECT ps.*,
                        m.nombre AS nombre_metodo, 
                        c.num_cuenta, 
+                       c.tipo_moneda AS moneda_cuenta,
                        b.nombre AS banco_nombre,
                        a.Usuario AS NombreAdmin 
                 FROM pago_servicio ps 
@@ -115,14 +119,14 @@ class ModelPagoServicio {
         }
     }
 
-    public function actualizar($id, $monto, $concepto, $id_metodo, $id_cuenta, $fecha) {
+    public function actualizar($id, $monto, $concepto, $id_metodo, $id_cuenta, $fecha, $moneda = null, $tasa = null, $monto_usd = null) {
         $id_metodo = !empty($id_metodo) ? intval($id_metodo) : null;
         $id_cuenta = !empty($id_cuenta) ? intval($id_cuenta) : null;
 
-        $sql = "UPDATE pago_servicio SET monto = ?, concepto = ?, id_metodo = ?, id_cuenta = ?, fecha = ? WHERE id_pago_servicio = ?";
+        $sql = "UPDATE pago_servicio SET monto = ?, concepto = ?, id_metodo = ?, id_cuenta = ?, fecha = ?, moneda = ?, tasa = ?, monto_usd = ? WHERE id_pago_servicio = ?";
         try {
             $stmt = $this->db->prepare($sql);
-            return $stmt->execute([$monto, $concepto, $id_metodo, $id_cuenta, $fecha, $id]);
+            return $stmt->execute([$monto, $concepto, $id_metodo, $id_cuenta, $fecha, $moneda, $tasa, $monto_usd, $id]);
         } catch (PDOException $e) {
             return false;
         }
