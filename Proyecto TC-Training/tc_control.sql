@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Servidor: 127.0.0.1
--- Tiempo de generación: 07-11-2026 a las 21:59:24
+-- Tiempo de generación: 08-11-2026 a las 17:14:30
 -- Versión del servidor: 10.1.38-MariaDB
 -- Versión de PHP: 7.3.2
 
@@ -65,7 +65,9 @@ CREATE TABLE `banco` (
 
 INSERT INTO `banco` (`id_banco`, `nombre`) VALUES
 (1, 'Mercantil'),
-(2, 'paypal');
+(2, 'paypal'),
+(3, 'Binance'),
+(4, 'Efectivo/Caja');
 
 -- --------------------------------------------------------
 
@@ -90,9 +92,9 @@ CREATE TABLE `cliente` (
 --
 
 INSERT INTO `cliente` (`id_cliente`, `Nombre`, `apellido`, `telefono`, `fecha_inscripcion`, `estatus`, `Solvencia`, `Plan`, `fecha_registro`) VALUES
-(1, 'Ismael', 'Gil', '04245717884', '2026-09-01', 'activo', 'Insolvente', '1', '2026-10-13 02:53:55'),
+(1, 'Ismael', 'Gil', '04245717884', '2026-09-01', 'activo', 'Solvente', '2', '2026-10-13 02:53:55'),
 (2, 'Adrian', 'Suarez', '04553454451', '2026-10-13', 'activo', 'Solvente', '2', '2026-10-13 14:45:37'),
-(3, 'Alianna', 'Gutierrez', '098765432', '2026-11-07', 'activo', 'Solvente', '2', '2026-11-07 20:07:00');
+(3, 'Alianna', 'Gutierrez', '098765432', '2026-11-07', 'activo', 'Solvente', '3', '2026-11-07 20:07:00');
 
 -- --------------------------------------------------------
 
@@ -115,7 +117,7 @@ CREATE TABLE `configuracion` (
 --
 
 INSERT INTO `configuracion` (`id`, `nombre_empresa`, `tarifa_base`, `moneda`, `vencimiento_dias`, `ingresos_periodo`, `ultima_actualizacion`) VALUES
-(1, 'Training Club, CA', '30.00', 'USD', 35, 'semanal', '2026-10-13 14:51:17');
+(1, 'Training Club, CA', '30.00', 'USD', 7, 'semanal', '2026-11-08 04:05:41');
 
 -- --------------------------------------------------------
 
@@ -128,16 +130,21 @@ CREATE TABLE `cuenta` (
   `id_banco` int(11) NOT NULL,
   `num_cuenta` varchar(100) NOT NULL,
   `tipo_moneda` varchar(50) NOT NULL,
-  `saldo` decimal(10,2) DEFAULT '0.00'
+  `saldo` decimal(10,2) DEFAULT '0.00',
+  `saldo_inicial` decimal(12,2) NOT NULL DEFAULT '0.00',
+  `saldo_inicial_usd` decimal(12,2) NOT NULL DEFAULT '0.00'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 --
 -- Volcado de datos para la tabla `cuenta`
 --
 
-INSERT INTO `cuenta` (`id_cuenta`, `id_banco`, `num_cuenta`, `tipo_moneda`, `saldo`) VALUES
-(1, 1, '0605', 'BS', '10.00'),
-(3, 2, '65765765857', 'USD', '0.00');
+INSERT INTO `cuenta` (`id_cuenta`, `id_banco`, `num_cuenta`, `tipo_moneda`, `saldo`, `saldo_inicial`, `saldo_inicial_usd`) VALUES
+(1, 1, '0605', 'BS', '10.00', '0.00', '0.00'),
+(3, 2, '65765765857', 'USD', '0.00', '0.00', '0.00'),
+(4, 3, '8696969879', 'USD', '0.00', '0.00', '0.00'),
+(5, 4, 'Efectivo (USD)', 'USD', '0.00', '0.00', '0.00'),
+(6, 4, 'Efectivo (BS)', 'BS', '0.00', '0.00', '0.00');
 
 -- --------------------------------------------------------
 
@@ -200,19 +207,17 @@ CREATE TABLE `pagos` (
   `fecha_registro` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `moneda` varchar(3) DEFAULT NULL,
   `tasa` decimal(18,4) DEFAULT NULL,
-  `monto_usd` decimal(12,2) DEFAULT NULL
+  `monto_usd` decimal(12,2) DEFAULT NULL,
+  `anulado` tinyint(1) NOT NULL DEFAULT '0'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 --
 -- Volcado de datos para la tabla `pagos`
 --
 
-INSERT INTO `pagos` (`id_pago`, `id_cliente`, `id_cuenta`, `Monto`, `Fecha`, `id_metodo`, `fecha_registro`, `moneda`, `tasa`, `monto_usd`) VALUES
-(1, 1, 1, '500.00', '2026-10-13', 1, '2026-10-13 02:54:37', NULL, NULL, NULL),
-(2, 2, 1, '120.00', '2026-10-13', 1, '2026-10-13 14:47:49', NULL, NULL, NULL),
-(3, 2, 3, '25.00', '2026-11-07', 6, '2026-11-07 14:58:25', NULL, NULL, NULL),
-(4, 2, 1, '25.00', '2026-11-07', 3, '2026-11-07 15:15:47', NULL, NULL, NULL),
-(5, 3, 1, '22403.06', '2026-11-07', 3, '2026-11-07 20:07:55', 'BS', '896.1200', '25.00');
+INSERT INTO `pagos` (`id_pago`, `id_cliente`, `id_cuenta`, `Monto`, `Fecha`, `id_metodo`, `fecha_registro`, `moneda`, `tasa`, `monto_usd`, `anulado`) VALUES
+(1, 3, 3, '300.00', '2026-11-08', 3, '2026-11-08 15:23:19', 'USD', NULL, '300.00', 0),
+(2, 1, 1, '22500.00', '2026-11-08', 3, '2026-11-08 15:24:18', 'BS', '900.0000', '25.00', 0);
 
 -- --------------------------------------------------------
 
@@ -229,16 +234,20 @@ CREATE TABLE `pago_nomina` (
   `fecha_pago` date NOT NULL,
   `concepto` varchar(255) DEFAULT 'Pago de Nómina / Honorarios',
   `id_metodo` int(11) NOT NULL,
-  `fecha_registro` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
+  `fecha_registro` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `moneda` varchar(3) DEFAULT NULL,
+  `tasa` decimal(18,4) DEFAULT NULL,
+  `monto_usd` decimal(12,2) DEFAULT NULL,
+  `anulado` tinyint(1) NOT NULL DEFAULT '0'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 --
 -- Volcado de datos para la tabla `pago_nomina`
 --
 
-INSERT INTO `pago_nomina` (`id_nomina`, `id_entrenador`, `id_admin`, `id_cuenta`, `monto`, `fecha_pago`, `concepto`, `id_metodo`, `fecha_registro`) VALUES
-(1, 28220253, 1, 1, '25.00', '2026-10-13', 'Pago de Nómina / Honorarios', 1, '2026-10-12 22:29:11'),
-(2, 28220253, 4, 1, '120.00', '2026-10-13', 'Pago de Nómina / Honorarios', 1, '2026-10-13 14:57:16');
+INSERT INTO `pago_nomina` (`id_nomina`, `id_entrenador`, `id_admin`, `id_cuenta`, `monto`, `fecha_pago`, `concepto`, `id_metodo`, `fecha_registro`, `moneda`, `tasa`, `monto_usd`, `anulado`) VALUES
+(1, 28220253, 1, 3, '100.00', '2026-11-08', 'Pago de Nómina / Honorarios', 3, '2026-11-08 15:35:03', 'USD', NULL, '100.00', 0),
+(2, 28220253, 1, 1, '5000.00', '2026-11-08', 'Pago de Nómina / Honorarios', 3, '2026-11-08 15:35:28', 'BS', '900.0000', '5.56', 0);
 
 -- --------------------------------------------------------
 
@@ -253,8 +262,19 @@ CREATE TABLE `pago_servicio` (
   `id_cuenta` int(11) DEFAULT NULL,
   `id_metodo` int(11) DEFAULT NULL,
   `fecha` date NOT NULL,
-  `id_admin` int(11) DEFAULT NULL
+  `id_admin` int(11) DEFAULT NULL,
+  `moneda` varchar(3) DEFAULT NULL,
+  `tasa` decimal(18,4) DEFAULT NULL,
+  `monto_usd` decimal(12,2) DEFAULT NULL,
+  `anulado` tinyint(1) NOT NULL DEFAULT '0'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+--
+-- Volcado de datos para la tabla `pago_servicio`
+--
+
+INSERT INTO `pago_servicio` (`id_pago_servicio`, `monto`, `concepto`, `id_cuenta`, `id_metodo`, `fecha`, `id_admin`, `moneda`, `tasa`, `monto_usd`, `anulado`) VALUES
+(1, '5000.00', 'electricidad', 1, 3, '2026-11-08', 1, 'BS', '900.0000', '5.56', 0);
 
 -- --------------------------------------------------------
 
@@ -319,7 +339,8 @@ CREATE TABLE `tasa_cambio` (
 --
 
 INSERT INTO `tasa_cambio` (`id_tasa`, `fecha`, `tasa`, `id_admin`) VALUES
-(1, '2026-11-07', '896.1200', 1);
+(1, '2026-11-07', '896.1200', 1),
+(2, '2026-11-08', '900.0000', 1);
 
 --
 -- Índices para tablas volcadas
@@ -431,7 +452,7 @@ ALTER TABLE `administrador`
 -- AUTO_INCREMENT de la tabla `banco`
 --
 ALTER TABLE `banco`
-  MODIFY `id_banco` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `id_banco` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
 -- AUTO_INCREMENT de la tabla `cliente`
@@ -449,7 +470,7 @@ ALTER TABLE `configuracion`
 -- AUTO_INCREMENT de la tabla `cuenta`
 --
 ALTER TABLE `cuenta`
-  MODIFY `id_cuenta` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+  MODIFY `id_cuenta` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
 
 --
 -- AUTO_INCREMENT de la tabla `metodo_pago`
@@ -461,7 +482,7 @@ ALTER TABLE `metodo_pago`
 -- AUTO_INCREMENT de la tabla `pagos`
 --
 ALTER TABLE `pagos`
-  MODIFY `id_pago` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+  MODIFY `id_pago` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT de la tabla `pago_nomina`
@@ -473,13 +494,13 @@ ALTER TABLE `pago_nomina`
 -- AUTO_INCREMENT de la tabla `pago_servicio`
 --
 ALTER TABLE `pago_servicio`
-  MODIFY `id_pago_servicio` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id_pago_servicio` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT de la tabla `tasa_cambio`
 --
 ALTER TABLE `tasa_cambio`
-  MODIFY `id_tasa` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id_tasa` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- Restricciones para tablas volcadas
