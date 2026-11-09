@@ -2,6 +2,7 @@
 session_start();
 include '../configuracion/conecxion.php';
 include '../modelo/Administrador.php';
+include '../modelo/Rol.php';
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $usuarioInput = trim($_POST['username']);
@@ -21,12 +22,19 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     switch($resultado) {
         case "correcto":
             
-            $stmt = $con->prepare("SELECT id_admin, Usuario FROM administrador WHERE Usuario = ?");
+            $stmt = $con->prepare("SELECT id_admin, Usuario, id_rol FROM administrador WHERE Usuario = ?");
             $stmt->execute([$usuarioInput]);
             $admin = $stmt->fetch(PDO::FETCH_ASSOC);
             
             $_SESSION['admin_id'] = $admin['id_admin'];
             $_SESSION['admin_user'] = $admin['Usuario'];
+
+            $idRol = (int) ($admin['id_rol'] ?: 2);
+            $rolModel = new Rol($con);
+            $rol = $rolModel->obtenerPorId($idRol);
+            $_SESSION['id_rol'] = $idRol;
+            $_SESSION['rol_nombre'] = $rol['nombre'] ?? 'Usuario';
+            $_SESSION['permisos'] = ($rol && $rol['permisos'] !== '') ? explode(',', $rol['permisos']) : [];
             
             header("Location: ../controlador/InicioController.php");
             exit();

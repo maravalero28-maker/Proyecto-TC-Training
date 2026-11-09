@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Registro Administrador - TC-Control</title>
+    <title>Registro de Usuario - TC-Control</title>
     <link rel="stylesheet" href="../estilos.css">
     <link rel="stylesheet" href="../responsive.css">
     <script src="../jv/script.js" defer></script>
@@ -13,8 +13,8 @@
         <?php include __DIR__ . '/partes/toast-notification.php'; ?>
         <section class="login-card">
             <header class="login-header">
-                <h1 class="font-lexend">Nuevo Administrador</h1>
-                <p>Crea una cuenta de administrador para acceder al sistema.</p>
+                <h1 class="font-lexend">Nuevo Usuario</h1>
+                <p>Crea una cuenta para acceder al sistema.</p>
             </header>
 
             <form action="../controlador/RegistroAdminControlador.php" method="POST">
@@ -50,7 +50,7 @@
             </form>
             
             <footer class="login-footer">
-                <a href="Login.php" class="link-back link-back-center">
+                <a href="<?php echo $urlVolver; ?>" class="link-back link-back-center">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
                         <path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
                     </svg>

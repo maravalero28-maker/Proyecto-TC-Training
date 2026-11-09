@@ -6,6 +6,8 @@ if (!isset($_SESSION['admin_id'])) {
     header("Location: ../vista/Login.php");
     exit();
 }
+require_once __DIR__ . '/permisos.php';
+requerirModulo('clientes');
 
 require_once "../configuracion/conecxion.php";
 require_once "../modelo/Cliente.php";

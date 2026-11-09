@@ -65,16 +65,15 @@
                             <label for="metodo_pago">Método de Pago:</label>
                             <select name="metodo_pago" id="metodo_pago">
                                 <option value="">Todos</option>
-                                <option value="Efectivo">Efectivo</option>
-                                <option value="Zelle">Zelle</option>
-                                <option value="Transferencia">Transferencia</option>
                                 <option value="Binance">Binance</option>
+                                <option value="Efectivo">Efectivo</option>
+                                <option value="PagoMovil">PagoMóvil</option>
+                                <option value="Paypal">PayPal</option>
+                                <option value="Transferencia">Transferencia</option>
+                                <option value="Zelle">Zelle</option>
                             </select>
                         </p>
-                        <p>
-                            <label for="banco">Banco / Cuenta Receptora:</label>
-                            <input type="text" name="banco" id="banco" placeholder="Ej: Banco Mercantil, Banesco...">
-                        </p>
+                       
                     </fieldset>
 
                     <fieldset class="grupo-campo reportes-fieldset is-hidden" id="filtros-clientes">
