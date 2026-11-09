@@ -183,13 +183,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['btnpago'])) {
         exit();
     }
 
-    $resultado = $objPago->registrar($id_cliente, floatval($monto), $fecha, $id_metodo, $id_cuenta, $conv['moneda'], $conv['tasa'], $montoUsd);
+    $planPago = obtenerPlanDelPago($objPago, $planes, $id_cliente, $plan_id);
+    $resultado = $objPago->registrar($id_cliente, floatval($monto), $fecha, $id_metodo, $id_cuenta, $conv['moneda'], $conv['tasa'], $montoUsd, $planPago['id_plan'] ?? null);
 
     if ($resultado === 'success') {
         if (!empty($plan_id) && is_numeric($plan_id)) {
             $objCliente->actualizarPlan($id_cliente, intval($plan_id));
         }
-        $objCliente->actualizarSolvencia($id_cliente, 'Solvente');
+        $objCliente->actualizarSolvenciaPorVencimiento();
         header("Location: ../controlador/pagoscontrolador.php?msj=creado");
         exit();
     }
@@ -222,6 +223,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['btncambiarestado'])) 
     }
 
     if ($objPago->cambiarEstado($id_pago, intval($nuevoEstado))) {
+        $objCliente->actualizarSolvenciaPorVencimiento();
         header("Location: ../controlador/pagoscontrolador.php?msj=" . ($nuevoEstado === '1' ? 'inhabilitado' : 'habilitado'));
         exit();
     }
@@ -292,12 +294,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['btnactualizarpago']))
         $tasa = $conv['tasa'];
     }
 
-    $actualizado = $objPago->actualizar($id_pago, $id_cliente, floatval($monto), $fecha, $id_metodo, $id_cuenta, $moneda, $tasa, $montoUsd);
+    $planPago = obtenerPlanDelPago($objPago, $planes, $id_cliente, $plan_id);
+    $actualizado = $objPago->actualizar($id_pago, $id_cliente, floatval($monto), $fecha, $id_metodo, $id_cuenta, $moneda, $tasa, $montoUsd, $planPago['id_plan'] ?? null);
     if ($actualizado) {
         if (!empty($plan_id) && is_numeric($plan_id)) {
             $objCliente->actualizarPlan($id_cliente, intval($plan_id));
         }
-        $objCliente->actualizarSolvencia($id_cliente, 'Solvente');
+        $objCliente->actualizarSolvenciaPorVencimiento();
         header("Location: ../controlador/pagoscontrolador.php?msj=actualizado");
         exit();
     } else {

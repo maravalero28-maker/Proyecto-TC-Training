@@ -29,7 +29,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['btnregistrar'])) {
         $_POST['telefono'] ?? '',
         $_POST['fecha'] ?? date('Y-m-d'),
         $_POST['estatus'] ?? '',
-        $_POST['solvencia'] ?? '',
         $_POST['plan'] ?? ''
     );
 
@@ -57,7 +56,6 @@ if (isset($_POST['btnactualizar'])) {
         $_POST['telefono'] ?? '',
         $_POST['fecha'] ?? date('Y-m-d'),
         $_POST['estatus'] ?? '',
-        $_POST['solvencia'] ?? '',
         $_POST['plan'] ?? ''
     );
 

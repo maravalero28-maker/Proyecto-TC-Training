@@ -78,9 +78,10 @@ if (isset($_GET['action']) && $_GET['action'] === 'editar' && isset($_GET['id'])
     exit();
 }
 
-if (isset($_GET['action']) && $_GET['action'] === 'eliminar' && isset($_GET['id'])) {
-    $objPlan->eliminar($_GET['id']);
-    header('Location: ../controlador/PlanController.php?msj=' . urlencode('Plan eliminado') . '&type=success');
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_GET['action']) && $_GET['action'] === 'eliminar' && isset($_GET['id'])) {
+    $eliminado = $objPlan->eliminar($_GET['id']);
+    $mensajeText = $eliminado ? 'Plan eliminado' : ($objPlan->getLastError() ?: 'No se pudo eliminar el plan.');
+    header('Location: ../controlador/PlanController.php?msj=' . urlencode($mensajeText) . '&type=' . ($eliminado ? 'success' : 'error'));
     exit();
 }
 
