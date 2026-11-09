@@ -61,9 +61,10 @@ $totalesUSD = (isset($totalesUSD) && is_array($totalesUSD)) ? $totalesUSD : [];
                         <?php endif; ?>
                     </p>
                 </section>
+                <!-- Acciones de fondos: modifica aquí los botones de tasa y método de pago. -->
                 <section class="header-actions">
-                    <a href="../controlador/FondoController.php?action=nueva_tasa" class="btn btn-outline">Tasa del Día</a>
-                    <a href="../controlador/FondoController.php?action=nuevo_metodo" class="btn btn-outline">+ Nuevo Método de Pago</a>
+                    <a href="../controlador/FondoController.php?action=nueva_tasa" class="btn btn-primary">Tasa del Día</a>
+                    <a href="../controlador/FondoController.php?action=nuevo_metodo" class="btn btn-primary">+ Nuevo Método de Pago</a>
                     <a href="../controlador/FondoController.php?action=nueva_cuenta" class="btn btn-primary">+ Nueva Cuenta</a>
                 </section>
             </header>
