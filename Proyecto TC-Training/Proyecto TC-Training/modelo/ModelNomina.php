@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/ModelTasa.php';
+require_once __DIR__ . '/MovimientoCuenta.php';
 
 class ModelNomina {
     private $db;
@@ -13,6 +14,12 @@ class ModelNomina {
 
     private function asegurarTabla() {
         try {
+            $stmtEntrenador = $this->db->query("SHOW COLUMNS FROM pago_nomina LIKE 'id_entrenador'");
+            $columnaEntrenador = $stmtEntrenador->fetch(PDO::FETCH_ASSOC);
+            if ($columnaEntrenador && strtolower($columnaEntrenador['Type']) !== 'varchar(30)') {
+                $this->db->exec("ALTER TABLE pago_nomina MODIFY id_entrenador VARCHAR(30) NOT NULL");
+            }
+
             $stmtMetodo = $this->db->prepare("SHOW COLUMNS FROM pago_nomina LIKE 'id_metodo'");
             $stmtMetodo->execute();
             if ($stmtMetodo->rowCount() === 0) {
@@ -48,10 +55,18 @@ class ModelNomina {
 
         $sql = "INSERT INTO pago_nomina (id_entrenador, id_admin, monto, fecha_pago, concepto, id_metodo, id_cuenta, moneda, tasa, monto_usd) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         try {
+            $this->db->beginTransaction();
             $stmt = $this->db->prepare($sql);
             $stmt->execute([$id_entrenador, $id_admin, $monto, $fecha_pago, $concepto, $id_metodo, $id_cuenta, $moneda, $tasa, $monto_usd]);
+            if (!MovimientoCuenta::ajustarSaldo($this->db, $id_cuenta, -$monto)) {
+                throw new RuntimeException('No se pudo descontar el monto de la cuenta seleccionada.');
+            }
+            $this->db->commit();
             return "success";
-        } catch (PDOException $e) {
+        } catch (Exception $e) {
+            if ($this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
             $this->lastError = $e->getMessage();
             return "error";
         }
@@ -130,9 +145,33 @@ class ModelNomina {
 
         $sql = "UPDATE pago_nomina SET id_entrenador = ?, monto = ?, fecha_pago = ?, concepto = ?, id_metodo = ?, id_cuenta = ?, moneda = ?, tasa = ?, monto_usd = ? WHERE id_nomina = ?";
         try {
+            $this->db->beginTransaction();
+            $stmtActual = $this->db->prepare("SELECT monto, id_cuenta, anulado FROM pago_nomina WHERE id_nomina = ? FOR UPDATE");
+            $stmtActual->execute([$id_nomina]);
+            $actual = $stmtActual->fetch(PDO::FETCH_ASSOC);
+            if (!$actual) {
+                throw new RuntimeException('No se encontró el pago de nómina que se desea actualizar.');
+            }
+
+            if ((int) $actual['anulado'] === 0) {
+                $mismoFondo = (int) $actual['id_cuenta'] === (int) $id_cuenta;
+                $saldoActualizado = $mismoFondo
+                    ? MovimientoCuenta::ajustarSaldo($this->db, $id_cuenta, $actual['monto'] - $monto)
+                    : MovimientoCuenta::ajustarSaldo($this->db, $actual['id_cuenta'], $actual['monto'])
+                        && MovimientoCuenta::ajustarSaldo($this->db, $id_cuenta, -$monto);
+                if (!$saldoActualizado) {
+                    throw new RuntimeException('No se pudo actualizar el saldo de las cuentas de nómina.');
+                }
+            }
+
             $stmt = $this->db->prepare($sql);
-            return $stmt->execute([$id_entrenador, $monto, $fecha_pago, $concepto, $id_metodo, $id_cuenta, $moneda, $tasa, $monto_usd, $id_nomina]);
-        } catch (PDOException $e) {
+            $ok = $stmt->execute([$id_entrenador, $monto, $fecha_pago, $concepto, $id_metodo, $id_cuenta, $moneda, $tasa, $monto_usd, $id_nomina]);
+            $this->db->commit();
+            return $ok;
+        } catch (Exception $e) {
+            if ($this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
             $this->lastError = $e->getMessage();
             return false;
         }
@@ -145,9 +184,29 @@ class ModelNomina {
 
         $sql = "UPDATE pago_nomina SET anulado = ? WHERE id_nomina = ?";
         try {
+            $this->db->beginTransaction();
+            $stmtActual = $this->db->prepare("SELECT monto, id_cuenta, anulado FROM pago_nomina WHERE id_nomina = ? FOR UPDATE");
+            $stmtActual->execute([$id_nomina]);
+            $actual = $stmtActual->fetch(PDO::FETCH_ASSOC);
+            if (!$actual) {
+                throw new RuntimeException('No se encontró el pago de nómina que se desea cambiar.');
+            }
+
+            if ((int) $actual['anulado'] !== (int) $anulado) {
+                $delta = (int) $anulado === 1 ? $actual['monto'] : -$actual['monto'];
+                if (!MovimientoCuenta::ajustarSaldo($this->db, $actual['id_cuenta'], $delta)) {
+                    throw new RuntimeException('No se pudo actualizar el saldo de la cuenta de nómina.');
+                }
+            }
+
             $stmt = $this->db->prepare($sql);
-            return $stmt->execute([(int) $anulado, $id_nomina]);
-        } catch (PDOException $e) {
+            $ok = $stmt->execute([(int) $anulado, $id_nomina]);
+            $this->db->commit();
+            return $ok;
+        } catch (Exception $e) {
+            if ($this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
             $this->lastError = $e->getMessage();
             return false;
         }

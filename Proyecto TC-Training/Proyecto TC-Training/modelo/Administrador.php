@@ -95,6 +95,16 @@ class Administrador {
             if (password_verify($password, $admin['Contrasenna'])) {
                 return "correcto";
             }
+
+            $passwordInfo = password_get_info($admin['Contrasenna']);
+            if (empty($passwordInfo['algo']) && hash_equals($admin['Contrasenna'], $password)) {
+                $hash = password_hash($password, PASSWORD_DEFAULT);
+                $stmt = $this->db->prepare("UPDATE administrador SET Contrasenna = ? WHERE id_admin = ?");
+                if ($stmt->execute([$hash, $admin['id_admin']])) {
+                    return "correcto";
+                }
+                return "error";
+            }
             
             return "password_incorrecta";
             

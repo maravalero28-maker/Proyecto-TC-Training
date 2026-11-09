@@ -118,11 +118,37 @@ class Plan {
     }
 
     public function eliminar($id) {
-        $sql = "DELETE FROM planes WHERE id_plan = ?";
         try {
-            $stmt = $this->db->prepare($sql);
-            return $stmt->execute([$id]);
+            $stmt = $this->db->query("SHOW COLUMNS FROM pagos LIKE 'id_plan'");
+            if ($stmt->rowCount() === 0) {
+                $this->db->exec("ALTER TABLE pagos ADD COLUMN id_plan INT(11) DEFAULT NULL");
+            }
+            $this->db->exec("UPDATE pagos p
+                             INNER JOIN cliente c ON c.id_cliente = p.id_cliente
+                             SET p.id_plan = (
+                                 SELECT pl.id_plan
+                                 FROM planes pl
+                                 WHERE pl.id_plan = CAST(c.Plan AS UNSIGNED) OR pl.nombre = c.Plan
+                                 LIMIT 1
+                             )
+                             WHERE p.id_plan IS NULL");
+
+            $stmt = $this->db->prepare("SELECT COUNT(*) FROM cliente WHERE Plan = ?");
+            $stmt->execute([$id]);
+            $usadoPorClientes = (int) $stmt->fetchColumn() > 0;
+            $stmt = $this->db->prepare("SELECT COUNT(*) FROM pagos WHERE id_plan = ?");
+            $stmt->execute([$id]);
+            $usadoPorPagos = (int) $stmt->fetchColumn() > 0;
+            if ($usadoPorClientes || $usadoPorPagos) {
+                $this->lastError = 'No se puede eliminar el plan porque está asociado a clientes o pagos del historial.';
+                return false;
+            }
+
+            $stmt = $this->db->prepare("DELETE FROM planes WHERE id_plan = ?");
+            $stmt->execute([$id]);
+            return $stmt->rowCount() > 0;
         } catch (PDOException $e) {
+            $this->lastError = $e->getMessage();
             return false;
         }
     }

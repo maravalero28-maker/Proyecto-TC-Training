@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/ModelTasa.php';
+require_once __DIR__ . '/MovimientoCuenta.php';
 
 class ModelPagoServicio {
     private $db;
@@ -48,10 +49,18 @@ class ModelPagoServicio {
 
         $sql = "INSERT INTO pago_servicio (monto, concepto, id_metodo, id_cuenta, fecha, id_admin, moneda, tasa, monto_usd) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
         try {
+            $this->db->beginTransaction();
             $stmt = $this->db->prepare($sql);
             $stmt->execute([$monto, $concepto, $id_metodo, $id_cuenta, $fecha, $id_admin, $moneda, $tasa, $monto_usd]);
+            if (!MovimientoCuenta::ajustarSaldo($this->db, $id_cuenta, -$monto)) {
+                throw new RuntimeException('No se pudo descontar el monto de la cuenta seleccionada.');
+            }
+            $this->db->commit();
             return "success";
-        } catch (PDOException $e) {
+        } catch (Exception $e) {
+            if ($this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
             $this->lastError = $e->getMessage();
             return "error";
         }
@@ -125,9 +134,34 @@ class ModelPagoServicio {
 
         $sql = "UPDATE pago_servicio SET monto = ?, concepto = ?, id_metodo = ?, id_cuenta = ?, fecha = ?, moneda = ?, tasa = ?, monto_usd = ? WHERE id_pago_servicio = ?";
         try {
+            $this->db->beginTransaction();
+            $stmtActual = $this->db->prepare("SELECT monto, id_cuenta, anulado FROM pago_servicio WHERE id_pago_servicio = ? FOR UPDATE");
+            $stmtActual->execute([$id]);
+            $actual = $stmtActual->fetch(PDO::FETCH_ASSOC);
+            if (!$actual) {
+                throw new RuntimeException('No se encontró el pago de servicio que se desea actualizar.');
+            }
+
+            if ((int) $actual['anulado'] === 0) {
+                $mismoFondo = (int) $actual['id_cuenta'] === (int) $id_cuenta;
+                $saldoActualizado = $mismoFondo
+                    ? MovimientoCuenta::ajustarSaldo($this->db, $id_cuenta, $actual['monto'] - $monto)
+                    : MovimientoCuenta::ajustarSaldo($this->db, $actual['id_cuenta'], $actual['monto'])
+                        && MovimientoCuenta::ajustarSaldo($this->db, $id_cuenta, -$monto);
+                if (!$saldoActualizado) {
+                    throw new RuntimeException('No se pudo actualizar el saldo de las cuentas del servicio.');
+                }
+            }
+
             $stmt = $this->db->prepare($sql);
-            return $stmt->execute([$monto, $concepto, $id_metodo, $id_cuenta, $fecha, $moneda, $tasa, $monto_usd, $id]);
-        } catch (PDOException $e) {
+            $ok = $stmt->execute([$monto, $concepto, $id_metodo, $id_cuenta, $fecha, $moneda, $tasa, $monto_usd, $id]);
+            $this->db->commit();
+            return $ok;
+        } catch (Exception $e) {
+            if ($this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
+            $this->lastError = $e->getMessage();
             return false;
         }
     }
@@ -139,9 +173,29 @@ class ModelPagoServicio {
 
         $sql = "UPDATE pago_servicio SET anulado = ? WHERE id_pago_servicio = ?";
         try {
+            $this->db->beginTransaction();
+            $stmtActual = $this->db->prepare("SELECT monto, id_cuenta, anulado FROM pago_servicio WHERE id_pago_servicio = ? FOR UPDATE");
+            $stmtActual->execute([$id]);
+            $actual = $stmtActual->fetch(PDO::FETCH_ASSOC);
+            if (!$actual) {
+                throw new RuntimeException('No se encontró el pago de servicio que se desea cambiar.');
+            }
+
+            if ((int) $actual['anulado'] !== (int) $anulado) {
+                $delta = (int) $anulado === 1 ? $actual['monto'] : -$actual['monto'];
+                if (!MovimientoCuenta::ajustarSaldo($this->db, $actual['id_cuenta'], $delta)) {
+                    throw new RuntimeException('No se pudo actualizar el saldo de la cuenta del servicio.');
+                }
+            }
+
             $stmt = $this->db->prepare($sql);
-            return $stmt->execute([(int) $anulado, $id]);
-        } catch (PDOException $e) {
+            $ok = $stmt->execute([(int) $anulado, $id]);
+            $this->db->commit();
+            return $ok;
+        } catch (Exception $e) {
+            if ($this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
             $this->lastError = $e->getMessage();
             return false;
         }

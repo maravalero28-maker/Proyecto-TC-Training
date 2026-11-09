@@ -250,10 +250,10 @@ class ModelFondo {
 
     // Registrar una cuenta nueva con su saldo inicial (en su moneda y su equivalente en dólares)
     public function registrarCuenta($id_banco, $num_cuenta, $tipo_moneda, $saldo_inicial = 0, $saldo_inicial_usd = 0) {
-        $sql = "INSERT INTO cuenta (id_banco, num_cuenta, tipo_moneda, saldo, saldo_inicial, saldo_inicial_usd) VALUES (?, ?, ?, 0, ?, ?)";
+        $sql = "INSERT INTO cuenta (id_banco, num_cuenta, tipo_moneda, saldo, saldo_inicial, saldo_inicial_usd) VALUES (?, ?, ?, ?, ?, ?)";
         try {
             $stmt = $this->db->prepare($sql);
-            return $stmt->execute([$id_banco, $num_cuenta, $tipo_moneda, $saldo_inicial, $saldo_inicial_usd]);
+            return $stmt->execute([$id_banco, $num_cuenta, $tipo_moneda, $saldo_inicial, $saldo_inicial, $saldo_inicial_usd]);
         } catch (PDOException $e) {
             $this->lastError = $e->getMessage();
             return false;

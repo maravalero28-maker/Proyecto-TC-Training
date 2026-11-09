@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/ModelTasa.php';
+require_once __DIR__ . '/MovimientoCuenta.php';
 
 class ModelPago {
     private $db;
@@ -25,12 +26,28 @@ class ModelPago {
             if ($stmtCuenta->rowCount() === 0) {
                 $this->db->exec("ALTER TABLE pagos ADD COLUMN id_cuenta INT(11) DEFAULT NULL");
             }
+
+            $stmtPlan = $this->db->prepare("SHOW COLUMNS FROM pagos LIKE 'id_plan'");
+            $stmtPlan->execute();
+            if ($stmtPlan->rowCount() === 0) {
+                $this->db->exec("ALTER TABLE pagos ADD COLUMN id_plan INT(11) DEFAULT NULL");
+            }
+
+            $this->db->exec("UPDATE pagos p
+                             INNER JOIN cliente c ON c.id_cliente = p.id_cliente
+                             SET p.id_plan = (
+                                 SELECT pl.id_plan
+                                 FROM planes pl
+                                 WHERE pl.id_plan = CAST(c.Plan AS UNSIGNED) OR pl.nombre = c.Plan
+                                 LIMIT 1
+                             )
+                             WHERE p.id_plan IS NULL");
         } catch (PDOException $e) {
-            
+            $this->lastError = $e->getMessage();
         }
     }
 
-    public function registrar($id_cliente, $monto, $fecha, $id_metodo = null, $id_cuenta = null, $moneda = null, $tasa = null, $monto_usd = null) {
+    public function registrar($id_cliente, $monto, $fecha, $id_metodo = null, $id_cuenta = null, $moneda = null, $tasa = null, $monto_usd = null, $id_plan = null) {
         if (empty($id_cliente) || empty($monto) || empty($fecha)) {
             return "warning";
         }
@@ -39,13 +56,22 @@ class ModelPago {
         $id_metodo = !empty($id_metodo) ? intval($id_metodo) : null;
         $id_cuenta = !empty($id_cuenta) ? intval($id_cuenta) : null;
 
-        $sql = "INSERT INTO pagos (id_cliente, Monto, Fecha, id_metodo, id_cuenta, moneda, tasa, monto_usd) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+        $id_plan = !empty($id_plan) ? intval($id_plan) : null;
+        $sql = "INSERT INTO pagos (id_cliente, Monto, Fecha, id_metodo, id_cuenta, moneda, tasa, monto_usd, id_plan) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
         try {
+            $this->db->beginTransaction();
             $stmt = $this->db->prepare($sql);
-            $stmt->execute([$id_cliente, $monto, $fecha, $id_metodo, $id_cuenta, $moneda, $tasa, $monto_usd]);
+            $stmt->execute([$id_cliente, $monto, $fecha, $id_metodo, $id_cuenta, $moneda, $tasa, $monto_usd, $id_plan]);
+            if (!MovimientoCuenta::ajustarSaldo($this->db, $id_cuenta, $monto)) {
+                throw new RuntimeException('No se pudo actualizar el saldo de la cuenta del pago.');
+            }
+            $this->db->commit();
             return "success";
-        } catch (PDOException $e) {
+        } catch (Exception $e) {
+            if ($this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
             $this->lastError = $e->getMessage();
             return "error";
         }
@@ -56,7 +82,7 @@ class ModelPago {
     }
 
     public function obtenerTodos($filtro = 'todos', $year = null, $options = []) {
-        $sql = "SELECT p.id_pago, p.id_cliente, p.Monto, p.Fecha, p.id_metodo, p.id_cuenta, p.anulado,
+        $sql = "SELECT p.id_pago, p.id_cliente, p.Monto, p.Fecha, p.id_metodo, p.id_cuenta, p.id_plan, p.anulado,
                        p.moneda, p.tasa, p.monto_usd,
                        m.nombre AS nombre_metodo,
                        CONCAT(c.Nombre, ' ', c.apellido) AS NombreCliente,
@@ -120,7 +146,7 @@ class ModelPago {
     }
 
     public function obtenerPorId($id) {
-        $sql = "SELECT p.id_pago, p.id_cliente, p.Monto, p.Fecha, p.id_metodo, p.id_cuenta, p.anulado,
+        $sql = "SELECT p.id_pago, p.id_cliente, p.Monto, p.Fecha, p.id_metodo, p.id_cuenta, p.id_plan, p.anulado,
                        p.moneda, p.tasa, p.monto_usd,
                        CONCAT(c.Nombre, ' ', c.apellido) AS NombreCliente
                 FROM pagos p
@@ -135,15 +161,40 @@ class ModelPago {
         }
     }
 
-    public function actualizar($id_pago, $id_cliente, $monto, $fecha, $id_metodo = null, $id_cuenta = null, $moneda = null, $tasa = null, $monto_usd = null) {
+    public function actualizar($id_pago, $id_cliente, $monto, $fecha, $id_metodo = null, $id_cuenta = null, $moneda = null, $tasa = null, $monto_usd = null, $id_plan = null) {
         $id_metodo = !empty($id_metodo) ? intval($id_metodo) : null;
         $id_cuenta = !empty($id_cuenta) ? intval($id_cuenta) : null;
+        $id_plan = !empty($id_plan) ? intval($id_plan) : null;
 
-        $sql = "UPDATE pagos SET id_cliente = ?, Monto = ?, Fecha = ?, id_metodo = ?, id_cuenta = ?, moneda = ?, tasa = ?, monto_usd = ? WHERE id_pago = ?";
+        $sql = "UPDATE pagos SET id_cliente = ?, Monto = ?, Fecha = ?, id_metodo = ?, id_cuenta = ?, moneda = ?, tasa = ?, monto_usd = ?, id_plan = ? WHERE id_pago = ?";
         try {
+            $this->db->beginTransaction();
+            $stmtActual = $this->db->prepare("SELECT Monto, id_cuenta, anulado FROM pagos WHERE id_pago = ? FOR UPDATE");
+            $stmtActual->execute([$id_pago]);
+            $actual = $stmtActual->fetch(PDO::FETCH_ASSOC);
+            if (!$actual) {
+                throw new RuntimeException('No se encontró el pago que se desea actualizar.');
+            }
+
+            if ((int) $actual['anulado'] === 0) {
+                $mismoFondo = (int) $actual['id_cuenta'] === (int) $id_cuenta;
+                $saldoActualizado = $mismoFondo
+                    ? MovimientoCuenta::ajustarSaldo($this->db, $id_cuenta, $monto - $actual['Monto'])
+                    : MovimientoCuenta::ajustarSaldo($this->db, $actual['id_cuenta'], -$actual['Monto'])
+                        && MovimientoCuenta::ajustarSaldo($this->db, $id_cuenta, $monto);
+                if (!$saldoActualizado) {
+                    throw new RuntimeException('No se pudo actualizar el saldo de las cuentas del pago.');
+                }
+            }
+
             $stmt = $this->db->prepare($sql);
-            return $stmt->execute([$id_cliente, $monto, $fecha, $id_metodo, $id_cuenta, $moneda, $tasa, $monto_usd, $id_pago]);
-        } catch (PDOException $e) {
+            $ok = $stmt->execute([$id_cliente, $monto, $fecha, $id_metodo, $id_cuenta, $moneda, $tasa, $monto_usd, $id_plan, $id_pago]);
+            $this->db->commit();
+            return $ok;
+        } catch (Exception $e) {
+            if ($this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
             $this->lastError = $e->getMessage();
             return false;
         }
@@ -156,9 +207,29 @@ class ModelPago {
 
         $sql = "UPDATE pagos SET anulado = ? WHERE id_pago = ?";
         try {
+            $this->db->beginTransaction();
+            $stmtActual = $this->db->prepare("SELECT Monto, id_cuenta, anulado FROM pagos WHERE id_pago = ? FOR UPDATE");
+            $stmtActual->execute([$id_pago]);
+            $actual = $stmtActual->fetch(PDO::FETCH_ASSOC);
+            if (!$actual) {
+                throw new RuntimeException('No se encontró el pago que se desea cambiar.');
+            }
+
+            if ((int) $actual['anulado'] !== (int) $anulado) {
+                $delta = (int) $anulado === 1 ? -$actual['Monto'] : $actual['Monto'];
+                if (!MovimientoCuenta::ajustarSaldo($this->db, $actual['id_cuenta'], $delta)) {
+                    throw new RuntimeException('No se pudo actualizar el saldo de la cuenta del pago.');
+                }
+            }
+
             $stmt = $this->db->prepare($sql);
-            return $stmt->execute([(int) $anulado, $id_pago]);
-        } catch (PDOException $e) {
+            $ok = $stmt->execute([(int) $anulado, $id_pago]);
+            $this->db->commit();
+            return $ok;
+        } catch (Exception $e) {
+            if ($this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
             $this->lastError = $e->getMessage();
             return false;
         }
