@@ -17,8 +17,8 @@
             TC-Control
         </a>
         <section class="user-actions">
-            <span class="text-muted">Administrador</span>
-            <a href="Login.php" class="btn btn-primary btn-sm">Salir</a>
+            <span class="text-muted"><?php echo htmlspecialchars($_SESSION['rol_nombre'] ?? 'Usuario'); ?></span>
+            <a href="../controlador/logout.php" class="btn btn-primary btn-sm">Salir</a>
         </section>
     </header>
 
@@ -135,41 +135,108 @@
                     </article>
                 </section>
 
+                <?php if ($esAdmin): ?>
                 <section class="center-card center-card-spaced">
                     <section class="flex-gap">
                         <button type="button" id="toggle-admin-management" class="btn btn-outline btn-flex" onclick="toggleAdminPanel()">Gestión de Usuarios</button>
                         <a href="../controlador/RegistroAdminControlador.php" class="btn btn-primary btn-sm">Registrar Usuarios</a>
                     </section>
                 </section>
+                <?php endif; ?>
 
+                <?php if ($esAdmin): ?>
                 <section id="admin-management-card" class="card center-card hidden mb-1">
                     <header class="card-header">
                         <h2 class="card-title font-lexend">Gestión de Usuarios</h2>
                     </header>
                     <article class="card-body">
                         <section class="table-responsive">
-                            <table class="payments-table">
+                            <table class="payments-table tabla-usuarios">
                                 <thead>
-                                    <tr><th>Usuario</th><th>Acciones</th></tr>
+                                    <tr><th>Usuario</th><th>Rol</th><th>Cambiar rol</th><th>Acciones</th></tr>
                                 </thead>
                                 <tbody>
-                                <?php if(!empty($admins)): ?>
-                                    <?php foreach($admins as $a): ?>
+                                <?php if (!empty($admins)): ?>
+                                    <?php foreach ($admins as $a): ?>
                                         <tr>
                                             <td><?php echo htmlspecialchars($a['Usuario']); ?></td>
+                                            <td><?php echo htmlspecialchars($a['rol'] ?? 'Sin rol'); ?></td>
                                             <td>
-                                                <button type="button" class="btn btn-outline btn-sm btn-delete-admin" data-id="<?php echo $a['id_admin']; ?>">Eliminar</button>
+                                                <form action="../controlador/UsuariosControlador.php" method="POST" class="flex-gap">
+                                                    <input type="hidden" name="accion" value="cambiar_rol">
+                                                    <input type="hidden" name="id_admin" value="<?php echo (int) $a['id_admin']; ?>">
+                                                    <select name="id_rol" class="select-inline select-rol" data-id="<?php echo (int) $a['id_admin']; ?>" data-actual="<?php echo (int) $a['id_rol']; ?>">
+                                                        <?php foreach ($roles as $r): ?>
+                                                            <option value="<?php echo (int) $r['id_rol']; ?>" <?php echo (int) $r['id_rol'] === (int) $a['id_rol'] ? 'selected' : ''; ?>><?php echo htmlspecialchars($r['nombre']); ?></option>
+                                                        <?php endforeach; ?>
+                                                        <option value="nuevo">➕ Nuevo rol...</option>
+                                                    </select>
+                                                    <button type="submit" class="btn btn-outline btn-sm">Cambiar rol</button>
+                                                </form>
+                                            </td>
+                                            <td>
+                                                <section class="flex-gap">
+                                                    <button type="button" class="btn btn-outline btn-sm btn-modificar-usuario" data-id="<?php echo (int) $a['id_admin']; ?>" data-usuario="<?php echo htmlspecialchars($a['Usuario']); ?>">Modificar</button>
+                                                    <form action="../controlador/UsuariosControlador.php" method="POST" onsubmit="return confirm('¿Eliminar este usuario?');">
+                                                        <input type="hidden" name="accion" value="eliminar">
+                                                        <input type="hidden" name="id_admin" value="<?php echo (int) $a['id_admin']; ?>">
+                                                        <button type="submit" class="btn btn-outline btn-sm">Eliminar</button>
+                                                    </form>
+                                                </section>
                                             </td>
                                         </tr>
                                     <?php endforeach; ?>
                                 <?php else: ?>
-                                    <tr><td colspan="2">No hay usuarios registrados.</td></tr>
+                                    <tr><td colspan="4">No hay usuarios registrados.</td></tr>
                                 <?php endif; ?>
                                 </tbody>
                             </table>
                         </section>
                     </article>
                 </section>
+
+                <dialog id="dialogo-nuevo-rol">
+                    <form action="../controlador/UsuariosControlador.php" method="POST">
+                        <h2 class="card-title font-lexend">Nuevo rol</h2>
+                        <input type="hidden" name="accion" value="nuevo_rol">
+                        <input type="hidden" name="id_admin" id="nuevo-rol-id-admin" value="">
+                        <fieldset class="form-group">
+                            <label for="nombre-rol" class="form-label">Tipo de rol</label>
+                            <input type="text" id="nombre-rol" name="nombre_rol" class="form-control" placeholder="Ej: Contador" required>
+                        </fieldset>
+                        <fieldset class="lista-modulos">
+                            <legend>Módulos a los que tendrá acceso</legend>
+                            <?php foreach (Rol::MODULOS as $clave => $etiqueta): ?>
+                                <label><input type="checkbox" name="modulos[]" value="<?php echo $clave; ?>"> <?php echo $etiqueta; ?></label>
+                            <?php endforeach; ?>
+                        </fieldset>
+                        <footer class="dialogo-acciones">
+                            <button type="button" class="btn btn-outline btn-sm btn-cerrar-dialogo">Cancelar</button>
+                            <button type="submit" class="btn btn-primary btn-sm">Crear y asignar</button>
+                        </footer>
+                    </form>
+                </dialog>
+
+                <dialog id="dialogo-modificar">
+                    <form action="../controlador/UsuariosControlador.php" method="POST">
+                        <h2 class="card-title font-lexend">Modificar usuario</h2>
+                        <input type="hidden" name="accion" value="modificar">
+                        <input type="hidden" name="id_admin" id="modificar-id-admin" value="">
+                        <fieldset class="form-group">
+                            <label for="modificar-usuario" class="form-label">Usuario</label>
+                            <input type="text" id="modificar-usuario" name="usuario" class="form-control" required>
+                        </fieldset>
+                        <fieldset class="form-group">
+                            <label for="modificar-password" class="form-label">Nueva contraseña</label>
+                            <input type="password" id="modificar-password" name="password" class="form-control" placeholder="Dejar vacío para no cambiarla">
+                        </fieldset>
+                        <footer class="dialogo-acciones">
+                            <button type="button" class="btn btn-outline btn-sm btn-cerrar-dialogo">Cancelar</button>
+                            <button type="submit" class="btn btn-primary btn-sm">Guardar</button>
+                        </footer>
+                    </form>
+                </dialog>
+                <?php endif; ?>
             </article>
         </section>
 

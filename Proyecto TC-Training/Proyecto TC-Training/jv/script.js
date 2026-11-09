@@ -170,19 +170,10 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    window.toggleAdminPanel = function () {
-        const adminCardElement = document.getElementById('admin-management-card');
-        if (!adminCardElement) return;
-        if (adminCardElement.style.display === 'none' || adminCardElement.style.display === '') {
-            adminCardElement.style.display = 'block';
-        } else {
-            adminCardElement.style.display = 'none';
-        }
-    };
 
 
     const cajaBusqueda = document.getElementById('table-search');
-    const cuerpoTabla = document.querySelector('.payments-table tbody');
+    const cuerpoTabla = document.querySelector('.payments-table:not(.tabla-usuarios) tbody');
     const btnAtras = document.getElementById('btn-prev-page');
     const btnAdelante = document.getElementById('btn-next-page');
     const txtInfo = document.getElementById('pagination-info');
@@ -335,4 +326,44 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         };
     }
+});
+
+document.addEventListener('DOMContentLoaded', function () {
+    var panel = document.getElementById('admin-management-card');
+
+    window.toggleAdminPanel = function () {
+        if (panel) panel.classList.toggle('hidden');
+    };
+
+    if (panel && new URLSearchParams(window.location.search).get('abrir') === 'usuarios') {
+        panel.classList.remove('hidden');
+    }
+
+    var dialogoRol = document.getElementById('dialogo-nuevo-rol');
+    var dialogoModificar = document.getElementById('dialogo-modificar');
+
+    document.querySelectorAll('.select-rol').forEach(function (select) {
+        select.addEventListener('change', function () {
+            if (select.value !== 'nuevo' || !dialogoRol) return;
+            document.getElementById('nuevo-rol-id-admin').value = select.dataset.id;
+            select.value = select.dataset.actual;
+            dialogoRol.showModal();
+        });
+    });
+
+    document.querySelectorAll('.btn-modificar-usuario').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            if (!dialogoModificar) return;
+            document.getElementById('modificar-id-admin').value = btn.dataset.id;
+            document.getElementById('modificar-usuario').value = btn.dataset.usuario;
+            document.getElementById('modificar-password').value = '';
+            dialogoModificar.showModal();
+        });
+    });
+
+    document.querySelectorAll('.btn-cerrar-dialogo').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            btn.closest('dialog').close();
+        });
+    });
 });
