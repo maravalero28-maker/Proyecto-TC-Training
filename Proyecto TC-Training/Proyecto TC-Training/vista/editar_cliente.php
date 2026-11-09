@@ -65,25 +65,16 @@ if (!isset($cliente)) {
                     </fieldset>
 
                     <fieldset class="form-group">
-                        <label for="solvencia" class="form-label">Solvencia</label>
-                        <select id="solvencia" name="solvencia" class="form-control">
-                            <option value="solvente" <?php echo $cliente['Solvencia'] == 'solvente' ? 'selected' : ''; ?>>Solvente</option>
-                            <option value="insolvente" <?php echo $cliente['Solvencia'] == 'insolvente' ? 'selected' : ''; ?>>Insolvente</option>
-                        </select>
-                        <p class="error-msg">Selecciona solvencia.</p>
-                    </fieldset>
-
-                    <fieldset class="form-group">
                         <label for="plan" class="form-label">Plan</label>
                         <select id="plan" name="plan" class="form-control">
-                            <option value="" <?php echo empty($cliente['Plan']) ? 'selected' : ''; ?>>Ninguno (sin plan)</option>
+                            <option value="">Seleccionar plan</option>
                             <?php if (!empty($planes)): ?>
                                 <?php foreach($planes as $pl): ?>
                                     <option value="<?php echo $pl['id_plan']; ?>" <?php echo $cliente['Plan'] == $pl['id_plan'] ? 'selected' : ''; ?>><?php echo htmlspecialchars($pl['nombre']); ?> - $<?php echo number_format($pl['precio'],2,',','.'); ?> (<?php echo intval($pl['dias']); ?> días)</option>
                                 <?php endforeach; ?>
                             <?php endif; ?>
                         </select>
-                        <p class="error-msg">Selecciona un plan si aplica.</p>
+                        <small class="text-muted">La solvencia se calcula automáticamente según los pagos válidos y la duración del plan.</small>
                     </fieldset>
                 </article>
 

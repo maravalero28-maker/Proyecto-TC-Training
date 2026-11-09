@@ -26,6 +26,10 @@ if (!isset($mensaje)) {
                 <p>Completa los datos para registrar un nuevo cliente.</p>
             </header>
 
+            <?php if (!empty($mensaje)): ?>
+                <section class="alert-container"><?php echo $mensaje; ?></section>
+            <?php endif; ?>
+
             <form id="registro-cliente-form" action="../controlador/ClienteController.php" method="POST" novalidate>
                 <article class="form-grid">
                     <fieldset class="form-group">
@@ -64,26 +68,16 @@ if (!isset($mensaje)) {
                     </fieldset>
 
                     <fieldset class="form-group">
-                        <label for="solvencia" class="form-label">Solvencia</label>
-                        <select id="solvencia" name="solvencia" class="form-control">
-                            <option value="">Seleccionar</option>
-                            <option value="solvente">Solvente</option>
-                            <option value="insolvente">Insolvente</option>
-                        </select>
-                        <p class="error-msg">Selecciona solvencia.</p>
-                    </fieldset>
-
-                    <fieldset class="form-group">
                         <label for="plan" class="form-label">Plan</label>
                         <select id="plan" name="plan" class="form-control">
-                            <option value="">Ninguno (sin plan)</option>
+                            <option value="">Seleccionar plan</option>
                             <?php if (!empty($planes)): ?>
                                 <?php foreach($planes as $pl): ?>
                                     <option value="<?php echo $pl['id_plan']; ?>"><?php echo htmlspecialchars($pl['nombre']); ?> - $<?php echo number_format($pl['precio'],2,',','.'); ?> (<?php echo intval($pl['dias']); ?> días)</option>
                                 <?php endforeach; ?>
                             <?php endif; ?>
                         </select>
-                        <p class="error-msg">Selecciona un plan si aplica.</p>
+                        <small class="text-muted">La solvencia se calculará cuando se registre un pago válido.</small>
                     </fieldset>
                 </article>
 

@@ -91,12 +91,14 @@
                                                         <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
                                                     </svg>
                                                 </a>
-                                                <a href="../controlador/PlanController.php?action=eliminar&id=<?php echo $pl['id_plan']; ?>" class="text-danger" title="Eliminar plan" onclick="return confirm('¿Eliminar plan? Esta acción no se puede deshacer.')">
+                                                <form method="post" action="../controlador/PlanController.php?action=eliminar&amp;id=<?php echo $pl['id_plan']; ?>" onsubmit="return confirm('¿Eliminar plan? Esta acción no se puede deshacer.');">
+                                                    <button type="submit" class="text-danger" title="Eliminar plan" aria-label="Eliminar plan">
                                                     <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                                                         <line x1="18" y1="6" x2="6" y2="18"></line>
                                                         <line x1="6" y1="6" x2="18" y2="18"></line>
                                                     </svg>
-                                                </a>
+                                                    </button>
+                                                </form>
                                             </section>
                                         </td>
                                     </tr>
