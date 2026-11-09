@@ -43,7 +43,7 @@ CREATE TABLE `administrador` (
 
 INSERT INTO `administrador` (`id_admin`, `Usuario`, `Contrasenna`, `PreguntaSecreta`, `RespuestaSecreta`, `fecha_creacion`, `id_rol`) VALUES
 (1, 'admin', '$2y$10$eOw7o.pZxKmKODOkwLqUF.YavgNDhhMH97w40qr0QyJADEImRSjii', NULL, NULL, '2026-05-09 00:00:00', 1),
-(2, 'jailymaife@gmail.com', '12345678', NULL, NULL, '2026-05-09 00:00:00', 1),
+(2, 'jailymaife@gmail.com', '$2y$10$puOTo.nOBWbgbNTU/qK9yut0BSxpj4kQRuRMKNyicV6U1cYQXogey', NULL, NULL, '2026-05-09 00:00:00', 1),
 (3, 'carlosdrb@gmail.com', '$2y$10$hG4nPiJJze8LwYnhHlUx3OrfJtOjw.FPI4nDOOb6Jc/SIuzqojbbC', NULL, NULL, '2026-05-09 00:00:00', 1),
 (4, 'mara', '$2y$10$kH0CO53B5xzh8c2JjUQgCOxt2A.CUwYvu3GWZddUwbyNo4GQxbVFa', '¿Cuál es el nombre de tu mascota?', '$2y$10$8xrCsZchji0gtHBCqcZymO1vgk7B/Dv/mmZJTfLYU.eJxaHHVtrYy', '2026-10-13 14:40:33', 3),
 (5, 'recepcionista', '$2y$10$awUmZxCTg6m8bLVp72IDpuzEpBBjIjN8jjvcK4iYc5Ph5YK6LDjyS', '¿Cuál es el nombre de tu mascota?', '$2y$10$87fQ1o751BCTUVpECYmq6.ipXv0zBUOAa5NNUnl4uVTsY5.zAh99y', '2026-11-09 00:51:39', 2);
@@ -83,7 +83,7 @@ CREATE TABLE `cliente` (
   `fecha_inscripcion` date NOT NULL,
   `estatus` varchar(40) NOT NULL DEFAULT 'Activo',
   `Solvencia` varchar(255) NOT NULL DEFAULT 'Solvente',
-  `Plan` varchar(255) NOT NULL DEFAULT 'Mensual',
+  `Plan` int(11) NOT NULL DEFAULT 2,
   `fecha_registro` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
@@ -141,9 +141,9 @@ CREATE TABLE `cuenta` (
 --
 
 INSERT INTO `cuenta` (`id_cuenta`, `id_banco`, `num_cuenta`, `tipo_moneda`, `saldo`, `saldo_inicial`, `saldo_inicial_usd`) VALUES
-(1, 1, '0605', 'BS', 10.00, 0.00, 0.00),
-(3, 2, '65765765857', 'USD', 0.00, 0.00, 0.00),
-(4, 3, '8696969879', 'USD', 0.00, 0.00, 0.00),
+(1, 1, '0605', 'BS', 30510.00, 10.00, 0.01),
+(3, 2, '65765765857', 'USD', 200.00, 0.00, 0.00),
+(4, 3, '8696969879', 'USD', 20.00, 0.00, 0.00),
 (5, 4, 'Efectivo (USD)', 'USD', 0.00, 0.00, 0.00),
 (6, 4, 'Efectivo (BS)', 'BS', 0.00, 0.00, 0.00);
 
@@ -205,6 +205,7 @@ CREATE TABLE `pagos` (
   `Monto` decimal(10,2) NOT NULL,
   `Fecha` date NOT NULL,
   `id_metodo` int(11) NOT NULL,
+  `id_plan` int(11) DEFAULT NULL,
   `fecha_registro` timestamp NOT NULL DEFAULT current_timestamp(),
   `moneda` varchar(3) DEFAULT NULL,
   `tasa` decimal(18,4) DEFAULT NULL,
@@ -216,11 +217,11 @@ CREATE TABLE `pagos` (
 -- Volcado de datos para la tabla `pagos`
 --
 
-INSERT INTO `pagos` (`id_pago`, `id_cliente`, `id_cuenta`, `Monto`, `Fecha`, `id_metodo`, `fecha_registro`, `moneda`, `tasa`, `monto_usd`, `anulado`) VALUES
-(1, 3, 3, 300.00, '2026-11-08', 3, '2026-11-08 15:23:19', 'USD', NULL, 300.00, 0),
-(2, 1, 1, 22500.00, '2026-11-08', 3, '2026-11-08 15:24:18', 'BS', 900.0000, 25.00, 0),
-(4, 4, 4, 20.00, '2026-11-08', 4, '2026-11-08 21:42:50', 'USD', NULL, 20.00, 0),
-(5, 4, 1, 18000.00, '2026-11-08', 2, '2026-11-08 22:10:40', 'BS', 900.0000, 20.00, 0);
+INSERT INTO `pagos` (`id_pago`, `id_cliente`, `id_cuenta`, `Monto`, `Fecha`, `id_metodo`, `id_plan`, `fecha_registro`, `moneda`, `tasa`, `monto_usd`, `anulado`) VALUES
+(1, 3, 3, 300.00, '2026-11-08', 3, 3, '2026-11-08 15:23:19', 'USD', NULL, 300.00, 0),
+(2, 1, 1, 22500.00, '2026-11-08', 3, 2, '2026-11-08 15:24:18', 'BS', 900.0000, 25.00, 0),
+(4, 4, 4, 20.00, '2026-11-08', 4, 4, '2026-11-08 21:42:50', 'USD', NULL, 20.00, 0),
+(5, 4, 1, 18000.00, '2026-11-08', 2, 4, '2026-11-08 22:10:40', 'BS', 900.0000, 20.00, 0);
 
 -- --------------------------------------------------------
 
@@ -230,7 +231,7 @@ INSERT INTO `pagos` (`id_pago`, `id_cliente`, `id_cuenta`, `Monto`, `Fecha`, `id
 
 CREATE TABLE `pago_nomina` (
   `id_nomina` int(11) NOT NULL,
-  `id_entrenador` int(11) NOT NULL,
+  `id_entrenador` varchar(30) NOT NULL,
   `id_admin` int(11) NOT NULL,
   `id_cuenta` int(11) NOT NULL,
   `monto` decimal(10,2) NOT NULL,
@@ -369,7 +370,8 @@ ALTER TABLE `banco`
 -- Indices de la tabla `cliente`
 --
 ALTER TABLE `cliente`
-  ADD PRIMARY KEY (`id_cliente`);
+  ADD PRIMARY KEY (`id_cliente`),
+  ADD KEY `fk_cliente_plan` (`Plan`);
 
 --
 -- Indices de la tabla `configuracion`
@@ -403,7 +405,8 @@ ALTER TABLE `pagos`
   ADD PRIMARY KEY (`id_pago`),
   ADD KEY `idx_id_cliente` (`id_cliente`),
   ADD KEY `fk_pago_cuenta` (`id_cuenta`),
-  ADD KEY `fk_metodo_pago_pagos` (`id_metodo`);
+  ADD KEY `fk_metodo_pago_pagos` (`id_metodo`),
+  ADD KEY `fk_pago_plan` (`id_plan`);
 
 --
 -- Indices de la tabla `pago_nomina`
@@ -522,8 +525,31 @@ ALTER TABLE `tasa_cambio`
 --
 ALTER TABLE `pago_servicio`
   ADD CONSTRAINT `fk_id_admin` FOREIGN KEY (`id_admin`) REFERENCES `administrador` (`id_admin`),
-  ADD CONSTRAINT `fk_metodo_pago_servicio` FOREIGN KEY (`id_metodo`) REFERENCES `metodo_pago` (`id_metodo`) ON DELETE CASCADE,
-  ADD CONSTRAINT `fk_servicio_cuenta` FOREIGN KEY (`id_cuenta`) REFERENCES `cuenta` (`id_cuenta`) ON DELETE CASCADE;
+  ADD CONSTRAINT `fk_metodo_pago_servicio` FOREIGN KEY (`id_metodo`) REFERENCES `metodo_pago` (`id_metodo`) ON DELETE RESTRICT,
+  ADD CONSTRAINT `fk_servicio_cuenta` FOREIGN KEY (`id_cuenta`) REFERENCES `cuenta` (`id_cuenta`) ON DELETE RESTRICT;
+
+CREATE TABLE `migracion_saldo_cuenta` (
+  `id` tinyint(1) NOT NULL,
+  `completada` tinyint(1) NOT NULL DEFAULT 0,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+INSERT INTO `migracion_saldo_cuenta` (`id`, `completada`) VALUES (1, 1);
+
+ALTER TABLE `cliente`
+  ADD CONSTRAINT `fk_cliente_plan` FOREIGN KEY (`Plan`) REFERENCES `planes` (`id_plan`) ON DELETE RESTRICT;
+
+ALTER TABLE `pagos`
+  ADD CONSTRAINT `fk_pago_cliente` FOREIGN KEY (`id_cliente`) REFERENCES `cliente` (`id_cliente`) ON DELETE RESTRICT,
+  ADD CONSTRAINT `fk_pago_cuenta` FOREIGN KEY (`id_cuenta`) REFERENCES `cuenta` (`id_cuenta`) ON DELETE RESTRICT,
+  ADD CONSTRAINT `fk_metodo_pago_pagos` FOREIGN KEY (`id_metodo`) REFERENCES `metodo_pago` (`id_metodo`) ON DELETE RESTRICT,
+  ADD CONSTRAINT `fk_pago_plan` FOREIGN KEY (`id_plan`) REFERENCES `planes` (`id_plan`) ON DELETE RESTRICT;
+
+ALTER TABLE `pago_nomina`
+  ADD CONSTRAINT `fk_nomina_entrenador` FOREIGN KEY (`id_entrenador`) REFERENCES `entrenador` (`cedula`) ON DELETE RESTRICT,
+  ADD CONSTRAINT `fk_nomina_admin` FOREIGN KEY (`id_admin`) REFERENCES `administrador` (`id_admin`) ON DELETE RESTRICT,
+  ADD CONSTRAINT `fk_nomina_metodo` FOREIGN KEY (`id_metodo`) REFERENCES `metodo_pago` (`id_metodo`) ON DELETE RESTRICT,
+  ADD CONSTRAINT `fk_nomina_cuenta` FOREIGN KEY (`id_cuenta`) REFERENCES `cuenta` (`id_cuenta`) ON DELETE RESTRICT;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;

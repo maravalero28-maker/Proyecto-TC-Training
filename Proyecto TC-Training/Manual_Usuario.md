@@ -26,12 +26,14 @@ El objetivo principal del sistema es centralizar la administración de usuarios,
 6. Acceda desde el navegador a `http://localhost/Proyecto TC-Training/Proyecto TC-Training/`.
 7. Inicie sesión con las credenciales de administrador registradas o use el formulario de registro si procede.
 
+Si importa datos de ejemplo, cambie las credenciales de esas cuentas antes de usar el sistema con información real.
+
 ## 4. Instrucciones para el uso básico de la aplicación
 
 1. Abrir la URL de la aplicación en el navegador.
 2. Ingresar usuario y contraseña en la pantalla de login.
 3. Si el usuario es administrador, podrá acceder a todas las secciones de configuración y gestión.
-4. Si el usuario es regular, verá solo datos y opciones de consulta permitidas.
+4. Las opciones disponibles dependen del rol asignado. En la configuración incluida, el rol Recepcionista tiene acceso a los módulos operativos; solo un administrador puede gestionar usuarios y roles.
 5. Navegar por el menú lateral para acceder a clientes, pagos, planes y ajustes.
 6. Usar los filtros disponibles en cada lista para buscar y ordenar información.
 
@@ -54,7 +56,7 @@ El sistema es una plataforma de control administrativo que facilita:
 - Generación de reportes y gráficos.
 - Exportación de datos a PDF y Excel.
 
-Su objetivo es mejorar el control interno y apoyar la presentación de información para decisiones administrativas.
+Su objetivo es mejorar el control interno y apoyar la presentación de información para decisiones administrativas. El sistema no tiene un módulo independiente de proyectos; los clientes, planes y pagos representan las operaciones del gimnasio.
 
 ### 6.2 Acceso y autenticación paso a paso
 
@@ -71,7 +73,8 @@ El administrador tiene permisos para:
 - Configurar el sistema y datos generales.
 - Registrar nuevos usuarios y clientes.
 - Editar datos existentes de clientes, planes y pagos.
-- Eliminar registros cuando sea necesario.
+- Desactivar clientes y conservar sus pagos e historial financiero.
+- Eliminar planes solo cuando no estén asignados a clientes.
 - Generar reportes y exportarlos.
 - Acceder a ajustes y modificar parámetros del sistema.
 
@@ -92,9 +95,11 @@ El administrador tiene permisos para:
 5. Para editar, seleccionar el registro y usar la opción "Editar".
 6. Para eliminar, usar el botón de eliminación y confirmar la acción.
 
-### 6.4 Procedimiento para registrar y gestionar proyectos
+La solvencia no se cambia manualmente: se calcula a partir de pagos activos que cubran el precio del plan y su duración. Un cliente recién registrado queda insolvente hasta que se registre un pago válido.
 
-En este sistema, los proyectos se gestionan como registros de clientes y pagos.
+### 6.4 Procedimiento para registrar y gestionar clientes
+
+El sistema no administra proyectos independientes. Para incorporar a una persona:
 
 1. Ir a la sección de clientes.
 2. Presionar "Registrar cliente".
