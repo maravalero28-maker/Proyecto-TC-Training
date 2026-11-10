@@ -26,11 +26,12 @@
             <?php endif; ?>
             <form id="registro-pagos-form" action="../controlador/pagoscontrolador.php" method="POST" novalidate>
                 <fieldset class="form-group">
-                    <label for="id_cliente" class="form-label">Cliente</label>
+                    <label for="buscar_cliente" class="form-label">Cliente</label>
+                    <input type="search" id="buscar_cliente" class="form-control" placeholder="Buscar cliente por nombre o cédula..." autocomplete="off">
                     <select id="id_cliente" name="id_cliente" class="form-control" required>
                         <option value="">Seleccione un cliente</option>
                         <?php foreach ($clientes as $cliente): ?>
-                            <option value="<?php echo $cliente['id_cliente']; ?>" 
+                            <option value="<?php echo $cliente['id_cliente']; ?>" data-cedula="<?php echo htmlspecialchars($cliente['id_cliente']); ?>"
                                 <?php echo (isset($id_clienteValor) && $cliente['id_cliente'] == $id_clienteValor) ? 'selected' : ''; ?>>
                                 <?php echo htmlspecialchars($cliente['nombre_completo']); ?>
                             </option>
@@ -135,6 +136,52 @@
             if (clienteSelect) {
                 clienteSelect.addEventListener('change', updateKeepText);
                 updateKeepText();
+            }
+
+            // Buscador de clientes: filtra la lista mientras se escribe (por nombre o cédula)
+            const buscador = document.getElementById('buscar_cliente');
+            if (buscador && clienteSelect) {
+                const placeholder = clienteSelect.options[0].textContent;
+                const todos = Array.prototype.slice.call(clienteSelect.options, 1).map(function (o) {
+                    return { value: o.value, texto: o.textContent.trim(), cedula: o.getAttribute('data-cedula') || '' };
+                });
+                const normalizar = function (t) {
+                    return String(t).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+                };
+
+                function pintar(filtro) {
+                    const seleccionado = clienteSelect.value;
+                    const q = normalizar(filtro.trim());
+                    const coincidencias = todos.filter(function (c) {
+                        return q === '' || normalizar(c.texto).indexOf(q) !== -1 || normalizar(c.cedula).indexOf(q) !== -1;
+                    });
+                    clienteSelect.innerHTML = '';
+                    clienteSelect.add(new Option(placeholder, ''));
+                    coincidencias.forEach(function (c) {
+                        clienteSelect.add(new Option(c.texto, c.value, false, c.value === seleccionado));
+                    });
+                    if (coincidencias.length === 0) {
+                        const vacio = new Option('Sin resultados', '');
+                        vacio.disabled = true;
+                        clienteSelect.add(vacio);
+                    }
+                    return coincidencias;
+                }
+
+                buscador.addEventListener('input', function () {
+                    pintar(buscador.value);
+                });
+
+                // Enter elige el primer cliente de la lista filtrada (sin enviar el formulario)
+                buscador.addEventListener('keydown', function (e) {
+                    if (e.key !== 'Enter') { return; }
+                    e.preventDefault();
+                    const coincidencias = pintar(buscador.value);
+                    if (coincidencias.length > 0) {
+                        clienteSelect.value = coincidencias[0].value;
+                        clienteSelect.dispatchEvent(new Event('change'));
+                    }
+                });
             }
         })();
     </script>
