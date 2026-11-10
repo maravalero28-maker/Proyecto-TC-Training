@@ -297,7 +297,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const serverMsg = document.body.dataset.serverMessage;
         const serverMsgType = document.body.dataset.serverMessageType || 'info';
         if (serverMsg) {
-            showToast(serverMsg, serverMsgType === 'success' ? 'success' : (serverMsgType === 'error' ? 'danger' : 'info'), 5000);
+            showToast(serverMsg, serverMsgType === 'success' ? 'success' : ((serverMsgType === 'error' || serverMsgType === 'warning') ? 'danger' : 'info'), 5000);
 
             delete document.body.dataset.serverMessage;
             delete document.body.dataset.serverMessageType;

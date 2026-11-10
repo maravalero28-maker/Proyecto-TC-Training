@@ -65,6 +65,12 @@ try {
             <?php endif; ?>
 
             
+            <?php if (isset($_GET['msg']) && $_GET['msg'] === 'recuperado'): ?>
+                <section class="alert alert-success">
+                    Contraseña actualizada. Ahora puedes iniciar sesión.
+                </section>
+            <?php endif; ?>
+
             <?php if (isset($_GET['info'])): ?>
                 <?php if ($_GET['info'] === 'registrado'): ?>
                     <section class="alert alert-success">

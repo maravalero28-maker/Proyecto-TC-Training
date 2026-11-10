@@ -24,6 +24,10 @@ if (!isset($entrenador)) {
                 <h1 class="font-lexend">Editar Entrenador</h1>
                 <p>Modifica los datos del instructor.</p>
             </header>
+            <?php if (($_GET['msj'] ?? '') === 'existe'): ?>
+                <section class="alert-container"><article class="alert alert-error">La cédula ingresada ya pertenece a otro entrenador.</article></section>
+            <?php endif; ?>
+
             <form action="../controlador/EntrenadorController.php" method="POST" novalidate>
                 <input type="hidden" name="cedula_original" value="<?php echo htmlspecialchars($entrenador['cedula']); ?>">
                 <article class="form-grid">

@@ -24,6 +24,10 @@ if (!isset($mensaje)) {
                 <h1 class="font-lexend">Registro de Entrenador</h1>
                 <p>Completa los datos para registrar un nuevo instructor.</p>
             </header>
+            <?php if (!empty($mensaje)): ?>
+                <section class="alert-container"><?php echo $mensaje; ?></section>
+            <?php endif; ?>
+
             <form id="registro-entrenador-form" action="../controlador/EntrenadorController.php" method="POST" novalidate>
                 <article class="form-grid">
                     <fieldset class="form-group">

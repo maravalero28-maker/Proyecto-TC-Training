@@ -75,6 +75,9 @@
                         document.body.dataset.serverMessage = <?php echo json_encode($mensaje['text']); ?>;
                         document.body.dataset.serverMessageType = <?php echo json_encode($mensaje['type']); ?>;
                     </script>
+                    <section class="alert-container">
+                        <article class="alert <?php echo ($mensaje['type'] ?? '') === 'success' ? 'alert-success' : 'alert-error'; ?>"><?php echo htmlspecialchars($mensaje['text'] ?? ''); ?></article>
+                    </section>
                 <?php endif; ?>
 
                 <section class="card center-card">

@@ -47,6 +47,10 @@ if (!isset($config) || !isset($totalActivos) || !isset($totalInsolventes) || !is
                 </section>
             </header>
 
+            <?php if (($_GET['error'] ?? '') === 'sin_permiso'): ?>
+                <section class="alert-container"><article class="alert alert-error">No tienes permiso para acceder a esa sección.</article></section>
+            <?php endif; ?>
+
             <section class="kpi-grid">
                 <article class="kpi-card">
                     <span class="kpi-label">Clientes Activos</span>

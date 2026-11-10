@@ -17,6 +17,10 @@
                 <p>Crea una cuenta para acceder al sistema.</p>
             </header>
 
+            <?php if (!empty($mensaje)): ?>
+                <section class="alert-container"><?php echo $mensaje; ?></section>
+            <?php endif; ?>
+
             <form action="../controlador/RegistroAdminControlador.php" method="POST">
 
                 <fieldset class="form-group">

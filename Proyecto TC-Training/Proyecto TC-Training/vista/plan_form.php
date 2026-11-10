@@ -32,6 +32,11 @@
             </header>
             <section class="card center-card">
                 <article class="card-body">
+                    <?php if (!empty($mensaje) && is_array($mensaje)): ?>
+                        <section class="alert-container">
+                            <article class="alert <?php echo ($mensaje['type'] ?? '') === 'success' ? 'alert-success' : 'alert-error'; ?>"><?php echo htmlspecialchars($mensaje['text'] ?? ''); ?></article>
+                        </section>
+                    <?php endif; ?>
                     <form action="../controlador/PlanController.php" method="POST">
                         <?php if (isset($plan)): ?>
                             <input type="hidden" name="id_plan" value="<?php echo intval($plan['id_plan']); ?>">
