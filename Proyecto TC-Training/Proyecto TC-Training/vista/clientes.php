@@ -18,7 +18,10 @@ $planEtiquetas = [
     <title>Clientes | TC-Control</title>
     <link rel="stylesheet" href="../estilos.css">
     <link rel="stylesheet" href="../responsive.css">
+    <link rel="stylesheet" href="../mensajes.css">
+    <meta name="codigo-pais" content="<?php echo htmlspecialchars(CODIGO_PAIS); ?>">
     <script src="../jv/script.js" defer></script>
+    <script src="../jv/mensajes.js" defer></script>
 </head>
 <body>
 <?php include __DIR__ . '/partes/toast-notification.php'; ?>
@@ -53,6 +56,7 @@ $planEtiquetas = [
                         <img src="../Imagenes/Lupa.png" alt="" class="search-icon" aria-hidden="true">
                         <input type="text" id="table-search" class="form-control search-input" placeholder="Buscar por nombre de cliente...">
                     </fieldset>
+                    <a href="../controlador/MensajeController.php?action=masivo" class="btn btn-outline">Mensaje masivo</a>
                     <a href="../controlador/ClienteController.php?action=nuevo" class="btn btn-primary">+ Nuevo Cliente</a>
                 </section>
             </header>
@@ -102,6 +106,15 @@ $planEtiquetas = [
                                 <td><span class="badge <?php echo ucfirst($cliente['Solvencia']) == 'Solvente' ? 'badge-active' : 'badge-inactive'; ?>"><?php echo htmlspecialchars(ucfirst($cliente['Solvencia'])); ?></span></td>
                                 <td>
                                     <section class="transactions-actions">
+                                        <button type="button" class="btn btn-outline btn-sm btn-enviar-mensaje"
+                                                data-id="<?php echo (int)$cliente['id_cliente']; ?>"
+                                                data-nombre="<?php echo htmlspecialchars($cliente['Nombre']); ?>"
+                                                data-apellido="<?php echo htmlspecialchars($cliente['apellido']); ?>"
+                                                data-telefono="<?php echo htmlspecialchars($cliente['telefono']); ?>"
+                                                data-plan="<?php echo htmlspecialchars($planMap[$cliente['Plan']] ?? $planEtiquetas[strtolower($cliente['Plan'] ?? '')] ?? ucfirst($cliente['Plan'] ?? '')); ?>"
+                                                data-dias="<?php echo strtolower($cliente['estatus']) === 'activo' ? (int)$cliente['dias_restantes'] : ''; ?>">
+                                            Enviar mensaje
+                                        </button>
                                         <a href="../controlador/ClienteController.php?action=editar&id=<?php echo $cliente['id_cliente']; ?>" class="text-primary" title="Editar">
                                             <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                                                 <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
@@ -110,8 +123,8 @@ $planEtiquetas = [
                                         </a>
                                         <a href="../controlador/ClienteController.php?action=eliminar&id=<?php echo $cliente['id_cliente']; ?>" 
                                            class="text-danger" 
-                                           title="Desactivar"
-                                           onclick="return confirm('¿Estás seguro de que deseas desactivar a este cliente? Se conservarán sus pagos e historial.');">
+                                           title="Eliminar"
+                                           onclick="return confirm('¿Estás seguro de que deseas eliminar a este cliente?');">
                                             <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
                                         </a>
                                     </section>
@@ -132,6 +145,25 @@ $planEtiquetas = [
         </article>
     </section>
 </main>
+
+<dialog id="dlg-mensaje" class="msg-dialog" aria-labelledby="dlg-titulo">
+    <header class="msg-dialog-header">
+        <section>
+            <h2 id="dlg-titulo" class="card-title font-lexend">Enviar mensaje</h2>
+            <p id="dlg-destinatario" class="text-muted"></p>
+        </section>
+        <button type="button" id="dlg-cerrar" class="btn btn-outline btn-sm" aria-label="Cerrar">&times;</button>
+    </header>
+
+    <?php include __DIR__ . '/partes/editor_mensaje.php'; ?>
+
+    <footer class="msg-dialog-footer">
+        <button type="button" id="dlg-cancelar" class="btn btn-outline">Cancelar</button>
+        <button type="button" id="btn-enviar" class="btn btn-primary">Enviar mensaje</button>
+    </footer>
+</dialog>
+
+<script type="application/json" id="plantillas-json"><?php echo json_encode($plantillas, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?></script>
 
 </body>
 </html>

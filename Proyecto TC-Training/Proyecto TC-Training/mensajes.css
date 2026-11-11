@@ -1,0 +1,111 @@
+/* Mensajes a clientes: ventana individual y pantalla de mensaje masivo */
+.msg-dialog {
+    width: min(640px, 94vw);
+    max-height: 92vh;
+    padding: 0;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    background-color: var(--surface);
+    color: var(--text-main);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.35);
+    overflow: auto;
+}
+
+.msg-dialog::backdrop {
+    background: rgba(0, 0, 0, 0.55);
+}
+
+.msg-dialog-header,
+.msg-dialog-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    padding: 1.25rem 1.5rem;
+}
+
+.msg-dialog-header { border-bottom: 1px solid var(--text-muted); }
+.msg-dialog-footer { justify-content: flex-end; }
+
+.msg-editor { padding: 1.25rem 1.5rem 0.5rem; }
+.card-body .msg-editor { padding: 0; }
+
+.msg-acciones {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    margin-top: 0.6rem;
+}
+
+.msg-ayuda {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin-top: 0.4rem;
+}
+
+.msg-editor textarea.form-control {
+    resize: vertical;
+    min-height: 120px;
+    line-height: 1.45;
+}
+
+.msg-preview {
+    display: block;
+    white-space: pre-wrap;
+    padding: 0.875rem 1rem;
+    border-radius: var(--radius-md);
+    background-color: var(--background);
+    border-left: 4px solid var(--success);
+    font-size: 0.95rem;
+    line-height: 1.45;
+}
+
+.msg-canal label {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-right: 1.25rem;
+}
+
+.msg-guardar {
+    border: 1px dashed var(--text-muted);
+    border-radius: var(--radius-md);
+    padding: 0.9rem 1rem;
+    margin-bottom: 1rem;
+}
+
+.msg-guardar-fila {
+    display: grid;
+    grid-template-columns: 1fr 150px auto;
+    gap: 0.6rem;
+    align-items: center;
+}
+
+.msg-estado {
+    display: block;
+    min-height: 1.2rem;
+    margin-bottom: 0.75rem;
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--success);
+}
+
+.msg-estado-error { color: var(--danger); }
+
+.masivo-barra {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+    padding: 1rem 2rem 0;
+}
+
+.masivo-nota { padding: 0 2rem 1rem; }
+.masivo-buscar { min-width: 200px; padding: 0.5rem 0.9rem; }
+.masivo-filtro { padding: 0.5rem 0.9rem; width: auto; }
+
+@media (max-width: 600px) {
+    .msg-guardar-fila { grid-template-columns: 1fr; }
+    .masivo-barra, .masivo-nota { padding-left: 1rem; padding-right: 1rem; }
+}

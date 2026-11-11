@@ -6,17 +6,18 @@ if (!isset($_SESSION['admin_id'])) {
     header("Location: ../vista/Login.php");
     exit();
 }
-require_once __DIR__ . '/permisos.php';
-requerirModulo('clientes');
 
 require_once "../configuracion/conecxion.php";
 require_once "../modelo/Cliente.php";
 require_once "../modelo/Plan.php";
+require_once "../configuracion/mensajeria.php";
+require_once "../modelo/PlantillaMensaje.php";
 
 $database = new Conexion();
 $db = $database->getConexion();
 $objCliente = new Cliente($db);
 $objPlan = new Plan($db);
+$objPlantilla = new PlantillaMensaje($db);
 
 $mensaje = '';
 $status = $_GET['status'] ?? 'todos';
@@ -29,6 +30,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['btnregistrar'])) {
         $_POST['telefono'] ?? '',
         $_POST['fecha'] ?? date('Y-m-d'),
         $_POST['estatus'] ?? '',
+        $_POST['solvencia'] ?? '',
         $_POST['plan'] ?? ''
     );
 
@@ -56,6 +58,7 @@ if (isset($_POST['btnactualizar'])) {
         $_POST['telefono'] ?? '',
         $_POST['fecha'] ?? date('Y-m-d'),
         $_POST['estatus'] ?? '',
+        $_POST['solvencia'] ?? '',
         $_POST['plan'] ?? ''
     );
 
@@ -87,8 +90,8 @@ if (isset($_GET['action']) && $_GET['action'] === 'editar' && isset($_GET['id'])
 }
 
 if (isset($_GET['action']) && $_GET['action'] === 'eliminar' && isset($_GET['id'])) {
-    $resultado = $objCliente->eliminar($_GET['id']);
-    header("Location: ../controlador/ClienteController.php?msj=" . ($resultado ? 'eliminado' : 'error'));
+    $objCliente->eliminar($_GET['id']);
+    header("Location: ../controlador/ClienteController.php?msj=eliminado");
     exit();
 }
 
@@ -96,7 +99,7 @@ if (isset($_GET['msj'])) {
     if ($_GET['msj'] === 'creado') {
         $mensaje = '<article class="alert alert-success">Cliente registrado exitosamente. </article>';
     } elseif ($_GET['msj'] === 'eliminado') {
-        $mensaje = '<article class="alert alert-success">Cliente desactivado correctamente.</article>';
+        $mensaje = '<article class="alert alert-success">Cliente eliminado correctamente.</article>';
     } elseif ($_GET['msj'] === 'error') {
         $mensaje = '<article class="alert alert-danger">Ocurrió un error al procesar la solicitud.</article>';
     } elseif ($_GET['msj'] === 'actualizado') {
@@ -117,5 +120,8 @@ $planEtiquetas = [
     'premium' => 'Mensual',
     'vip' => 'Anual',
 ];
+
+$plantillas = $objPlantilla->obtenerTodas();
+$tiposMensaje = unserialize(TIPOS_MENSAJE);
 
 include "../vista/clientes.php";
